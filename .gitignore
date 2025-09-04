@@ -23,3 +23,7 @@ dist/
 # 忽略 Python 缓存文件夹
 __pycache__/
 *.py[cod]
+
+# 忽略excel
+*.xlsx
+*.xls

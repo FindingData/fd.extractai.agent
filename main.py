@@ -1,5 +1,5 @@
 import sys
-from app.processor import process_land_file
+from app.processor_con import process_con_file
 import asyncio  # 导入 asyncio 用于运行异步函数
 
 def print_excel_requirements():
@@ -12,7 +12,7 @@ def print_excel_requirements():
 if __name__ == "__main__":
     print_excel_requirements()
     file_path = sys.argv[1] if len(sys.argv) > 1 else input("请输入Excel路径：")
-    result = asyncio.run(process_land_file(file_path))
+    result = asyncio.run(process_con_file(file_path))
     print(f"✅ 提取完成，共处理 {result['success_count']} 条，失败 {result['failed_count']} 条")
     if result['failed']:
         print("❌ 以下条目处理失败：")
