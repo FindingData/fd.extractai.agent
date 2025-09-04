@@ -29,7 +29,8 @@ async def process_land_file(file_path: str) -> dict:
         try:
             result = await safe_async_chain(chain, {"raw_text": text}, timeout=20)
             land_info = LandInfo.from_content(result.content)  
-            print(f"✅ 第{i}条主模型成功处理.")                                
+            print(f"✅ 第{i}条主模型成功处理.")                
+            print(land_info)                
         except Exception as e:
             print(f"💥 第{i}条主模型失败: {e}")
             try:

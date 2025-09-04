@@ -4,7 +4,8 @@ from app.utils.text_utils import extract_clean_json
 import json
 
 class HouseInfo(BaseModel):
-    城市名称: str =""
+    详细地址: str = ""
+    城市名称: str = ""
     区域名称: str = ""
     宗地坐落: str = ""
     楼盘名称: str = Field(..., alias="楼盘名称")
