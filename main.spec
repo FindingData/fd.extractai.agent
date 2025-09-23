@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('app/prompts/gen_land_data.txt', 'app/prompts')],
+    datas=[('app/prompts', 'app/prompts')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
