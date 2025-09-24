@@ -1,6 +1,7 @@
 
 import re
 from typing import List
+from markitdown import MarkItDown
 
 def extract_user_prompt(text):
     # 如果有 <think>...</think>，去掉它和中间内容，只取后面有效部分
@@ -8,6 +9,14 @@ def extract_user_prompt(text):
     cleaned = re.sub(pattern, '', text, flags=re.DOTALL)
     # 再去掉多余的空行
     return cleaned.strip()
+
+def convert_docx_to_md(input_path: str) -> str:
+    md = MarkItDown()  # 需要更强功能可传入 llm_client/docintel_endpoint 等
+    result = md.convert(input_path)  # 支持文件路径/URL/字节流
+
+    text = result.text_content
+    return text
+   
 
 def extract_clean_json(text: str) -> str:
     # 1. 清除 <think>...</think> 块
