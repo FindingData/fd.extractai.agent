@@ -6,26 +6,33 @@ from datetime import datetime
 import os,pathlib
 from pathlib import Path
 from app.utils.text_utils import convert_docx_to_md
-from app.utils.markdown_utils import sectionize,bucket_by_targets
+from app.utils.markdown_utils import sectionize,bucket_by_targets,extract_title_plus_pipe_table,extract_basic_info_table
 from typing import Iterable, Sequence, Iterable, Any, Dict,List, Union,Tuple
 from langextract import extract
 from langextract.core import data
 from dotenv import load_dotenv
+from config import CONFIG
 
 
 EXPORT_DIR = Path(os.getcwd()) / "exports"
 
 example_1 = data.ExampleData(
-        text= """参加估价的注册房地产估价师
-|  |  |  |  |
-| --- | --- | --- | --- |
-| 姓名 | 注册号 | 签名 | 签名日期 |
-| 张未奋 | 4320200098 |  | 年 月 日 |
-| 李萍 | 4320040057 |  | 年 月 日 |
+        text= """
+|  |  |  |  |  |  |  |  |  |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 估价对象 | 权证号 | 权利人 | 坐落 | 用途 | 所在层/总层数 | 建筑面积（m2） | 单价（元/m2) | 总价（元） |
+| 1 | 洪房权证黔城镇字第711000391号 | 肖春梅 | 洪江市黔城镇玉壶路交通局隔壁01、02等2套 | 商业 | 1/6 | 61.99 | 3535 | 219135 |
 """,
         extractions=[           
-            data.Extraction("appraiser", "张未奋", attributes={ "appraiser":"张未奋", "register_id": "4320200098"}),
-            data.Extraction("appraiser", "李萍", attributes={"appraiser":"李萍", "register_id": "4320040057"})            
+            data.Extraction("object", "雁峰区和平南路9号", 
+                            attributes={ 
+                                "用途":"商业",
+                                "产权证号":"衡房权证雁峰区字第00216768号", 
+                                "面积":"61.99",
+                                "产权人": "廖湖北",
+                                "总价":"219135",
+                                }),
+            
         ],
     )
 
@@ -34,7 +41,7 @@ EXAMPLES: Sequence[data.ExampleData] = [example_1]
 def _ensure_api_key() -> str:
     """Fetch the LangExtract API key or raise a helpful error."""
     load_dotenv()
-    api_key = os.getenv("LANGEXTRACT_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError(
             "Set the LANGEXTRACT_API_KEY environment variable before running the demo."
@@ -71,7 +78,7 @@ if __name__ == "__main__":
 
     # 你的同义词表（可放 YAML）
      config = {
-        "valuation_purpose": ["注册房地产估价师"],
+        "valuation_purpose": ["估价结果一览表"],
         #"valuation_object":  ["估价对象"],
         # "ownership_status":  ["权属情况","权证信息","产权信息"],
         # "valuation_basis":   ["估价依据","评估依据","法律法规与标准"],
@@ -81,7 +88,10 @@ if __name__ == "__main__":
         # "conclusions":       ["估价结论","评估结论","最终结论"],
         # "assumptions_risks": ["假设与限制","特殊假设","风险提示"],
      }
-
+     
+     pa = extract_title_plus_pipe_table(md_text, r"**估价对象基本情况一览表**")
+     if pa:
+        print("找到估价结果一览表段落：", pa)
      secs = sectionize(md_text)
      buckets = bucket_by_targets(secs, config)
 
@@ -89,7 +99,7 @@ if __name__ == "__main__":
      vb = buckets.get("valuation_purpose", [])
      if vb:
         print("注册房地产估价师\n", vb[0]["content"], "...")
-     text = vb[0]["content"]
+     text = pa
      annotated_doc = extract(
         text,
         prompt_description="""从评估报告中提取以下结构化信息。提取的信息必须严格来自报告原文，不要进行概括或转述。""",
@@ -97,6 +107,8 @@ if __name__ == "__main__":
         api_key=_ensure_api_key(),
         format_type=data.FormatType.JSON,
         max_char_buffer=400,
+        model_id=CONFIG.LOCAL_MODEL_NAME,
+        model_url=CONFIG.LOCAL_MODEL_URL,
     )
 
      extractions: Iterable[data.Extraction] = annotated_doc.extractions or []
