@@ -2,7 +2,7 @@ from app.schemas.LandInfo import LandInfo
 from app.schemas.HouseInfo import HouseInfo
 from app.llm.factory import LLMFactory
 from langchain.prompts import ChatPromptTemplate
-from app.utils.prompt_tuils import load_prompt
+from app.utils.prompt_utils import load_prompt
 from app.utils.file_parser import load_excel,export_to_excel
 from app.utils.async_utils import safe_async_chain
 from datetime import datetime

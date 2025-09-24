@@ -27,3 +27,6 @@ __pycache__/
 # 忽略excel
 *.xlsx
 *.xls
+*.docx
+*.doc
+*.md
