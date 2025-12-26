@@ -1,0 +1,316 @@
+{
+  "2_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2022）长沙市不动产权第0408725号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 57.35,
+      "usage": "商业",
+      "total_price": 449968
+    },
+    {
+      "object_num": "估价对象2",
+      "certificate_number": "湘（2022）长沙市不动产权第0408727号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 57.35,
+      "usage": "商业",
+      "total_price": 449968
+    },
+    {
+      "object_num": "估价对象3",
+      "certificate_number": "湘（2022）长沙市不动产权第0408724号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 57.35,
+      "usage": "商业",
+      "total_price": 449968
+    },
+    {
+      "object_num": "估价对象4",
+      "certificate_number": "湘（2022）长沙市不动产权第0408723号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 57.35,
+      "usage": "商业",
+      "total_price": 449968
+    },
+    {
+      "object_num": "估价对象5",
+      "certificate_number": "湘（2022）长沙市不动产权第0408722号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 61.44,
+      "usage": "商业",
+      "total_price": 482058
+    },
+    {
+      "object_num": "估价对象6",
+      "certificate_number": "湘（2022）长沙市不动产权第0392703号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 22.81,
+      "usage": "商业",
+      "total_price": 248561
+    },
+    {
+      "object_num": "估价对象7",
+      "certificate_number": "湘（2022）长沙市不动产权第0392704号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 16.59,
+      "usage": "商业",
+      "total_price": 180781
+    },
+    {
+      "object_num": "估价对象8",
+      "certificate, certificate_number": "湘（2022）长沙市不动产权第0392705号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 16.59,
+      "usage": "商业",
+      "total_price": 180781
+    },
+    {
+      "object_num": "估价对象9",
+      "certificate_number": "湘（2022）长沙市不动产权第0392706号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 15.51,
+      "usage": "商业",
+      "total_price": 169012
+    },
+    {
+      "object_num": "估价对象10",
+      "certificate_number": "湘（2022）长沙市不动产权第0392707号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 27,
+      "usage": "商业",
+      "total_price": 294219
+    },
+    {
+      "object_num": "估价对象11",
+      "certificate_number": "湘（2022）长沙市不动产权第0392708号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 16.19,
+      "usage": "商业",
+      "total_price": 176422
+    },
+    {
+      "object_num": "估价对象12",
+      "certificate_number": "湘（2022）长沙市不动产权第0392709号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 15.11,
+      "usage": "商业",
+      "total_price": 164654
+    },
+    {
+      "object_num": "估价对象13",
+      "certificate_number": "湘（2022）长沙市不动产权第0392711号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 15.11,
+      "usage": "商业",
+      "total_price": 164654
+    },
+    {
+      "object_num": "估价对象14",
+      "certificate_number": "湘（2022）长沙市不动产权第0392712号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 15.08,
+      "usage": "商业",
+      "total_price": 164327
+    },
+    {
+      "object_num": "估价对象15",
+      "certificate_number": "湘（2022）长沙市不动产权第0394113号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 15.75,
+      "usage": "商业",
+      "total_price": 171628
+    },
+    {
+      "object_num": "估价对象16",
+      "certificate_number": "湘（2022）长沙市不动产权第0392724号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.03,
+      "usage": "商业",
+      "total_price": 141988
+    },
+    {
+      "object_num": "估价对象17",
+      "certificate_number": "湘（2022）长沙市不动产权第0392725号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.03,
+      "usage": "商业",
+      "total_price": 141988
+    },
+    {
+      "object_num": "估价对象18",
+      "certificate_number": "湘（2022）长沙市不动产权第0392728号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.03,
+      "usage": "商业",
+      "total_price": 141988
+    },
+    {
+      "object_num": "估价对象19",
+      "certificate_number": "湘（2022）长沙市不动产权第0394110号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 18.55,
+      "usage": "商业",
+      "total_price": 202139
+    },
+    {
+      "object_num": "估价对象20",
+      "certificate_number": "湘（2022）长沙市不动产权第0392729号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象21",
+      "certificate_number": "湘（2022）长沙市不动产权第0394068号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象22",
+      "certificate_number": "湘（2022）长沙市不动产权第0392731号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象23",
+      "certificate_number": "湘（2022）长沙市不动产权第0392732号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象24",
+      "certificate_number": "湘（2022）长沙市不动产权第0392733号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象25",
+      "certificate_number": "湘（2022）长沙市不动产权第0392735号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象26",
+      "certificate_number": "湘（2022）长沙市不动产权第0392736号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象27",
+      "certificate_number": "湘（2022）长沙市不动产权第0392739号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 13.7,
+      "usage": "商业",
+      "total_price": 149289
+    },
+    {
+      "object_num": "估价对象28",
+      "certificate_number": "湘（2022）长沙市不动产权第0392740号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 38.72,
+      "usage": "商业",
+      "total_price": 421932
+    },
+    {
+      "object_num": "估价对象29",
+      "certificate_number": "湘（2022）长沙市不动产权第0392741号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 22.76,
+      "usage": "商业",
+      "total_price": 248016
+    },
+    {
+      "object_num": "估价对象30",
+      "certificate_number": "湘（2022）长沙市不动产权第0392743号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 22.76,
+      "usage": "商业",
+      "total_price": 248016
+    },
+    {
+      "object_num": "估价对象31",
+      "certificate_number": "湘（2022）长沙市不动产权第0392744号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 22.76,
+      "usage": "商业",
+      "total_price": 248016
+    },
+    {
+      "object_num": "估价对象32",
+      "certificate_number": "湘（2022）长沙市不动产权第0394112号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 22.76,
+      "usage": "商业",
+      "total_price": 248016
+    },
+    {
+      "object_num": "估价对象33",
+      "certificate_number": "湘（2021）长沙市不动产权第0354543号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 91.74,
+      "usage": "住宅",
+      "total_price": 486039
+    },
+    {
+      "object_num": "估价对象34",
+      "certificate_number": "湘（2021）长沙市不动产权第0352332号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 91.74,
+      "usage": "住宅",
+      "total_price": 486039
+    },
+    {
+      "object_num": "估价对象35",
+      "certificate_number": "湘（2021）长沙市不动产权第0354538号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 91.74,
+      "usage": "住宅",
+      "total_price": 486039
+    },
+    {
+      "object_num": "估价对象36",
+      "certificate_number": "湘（2020）湘潭市不动产权第0004759号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 61.57,
+      "usage": "商业",
+      "total_price": 453771
+    },
+    {
+      "object_num": "估价对象37",
+      "certificate_number": "湘（2018）湘潭市不动产权第0055893号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 124.3,
+      "usage": "商业",
+      "total_price": 747540
+    },
+    {
+      "object_num": "估价对象38",
+      "certificate_number": "湘（2018）湘潭市不动产权第0055895号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 124.3,
+      "usage": "商业",
+      "total_price": 747540
+    },
+    {
+      "object_num": "估价对象39",
+      "certificate_number": "湘（2021）湘潭市不动产权第0006779号",
+      "owner_name": "长沙凯乐信息技术有限公司",
+      "building_area": 138.66,
+      "usage": "住宅",
+      "total_price": 512626
+    }
+  ]
+}
