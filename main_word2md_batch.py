@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 import json
 import pandas as pd
-from app.processor_report import extract_valuation_data
+from app.processor_report import extract_valuation_data,quick_extract
 
 # 1. 纯粹的文档转换方法
 def batch_convert_docx_to_md(input_dir: str):
@@ -93,7 +93,7 @@ def generate_initial_benchmark(input_dir: Path,benchmark_file:str ='benchmark.js
         # 注意：这里使用的应该是你之前调试好的 schema 和 prompt
         try:
             
-            initial_data[md_file.stem] = extract_valuation_data(content)
+            initial_data[md_file.stem] = quick_extract(content)
             
         except Exception as e:
             print(f"❌ {md_file.name} 预抽失败: {e}")
@@ -111,11 +111,11 @@ current_file = Path(__file__).resolve()
 if __name__ == "__main__":
     # 根据您的目录结构设置路径    
     app_root = current_file.parent
-    input_directory = app_root / "inputs/report"
+    input_directory = app_root / "inputs/report_hf"
     print(f"📂 正在扫描目录: {input_directory}")
     # 第一步：转换
-    #batch_convert_docx_to_md(input_directory)
+    batch_convert_docx_to_md(input_directory)
     # 第二步：切片
-    #extract_short_sections(input_directory)
+    extract_short_sections(input_directory)
     # 第三步: 基准预抽
     generate_initial_benchmark(input_directory)

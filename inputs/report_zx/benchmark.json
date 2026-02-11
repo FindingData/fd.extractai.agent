@@ -1,0 +1,40 @@
+{
+  "91852_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2024）长沙市不动产权第0318414号",
+      "owner_name": "章驰",
+      "building_area": 85.95,
+      "usage": "住宅",
+      "total_price": 559191
+    },
+    {
+      "object_num": "估价对象2",
+      "certificate_number": "湘（2023）长沙市不动产权第0165391号",
+      "owner_name": "章驰",
+      "building_area": 141.15,
+      "usage": "住宅",
+      "total_price": 1762964
+    }
+  ],
+  "91981_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2025）长沙市不动产权第0344762号/湘（2025）长沙市不动产权第0344763号",
+      "owner_name": "黄湘英 廖晓阳",
+      "building_area": 292.32,
+      "usage": "住宅",
+      "total_price": 2972000
+    }
+  ],
+  "92872_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2025）望城区不动产权第0030293号",
+      "owner_name": "刘辉辉",
+      "building_area": 114.97,
+      "usage": "住宅",
+      "total_price": 925400
+    }
+  ]
+}

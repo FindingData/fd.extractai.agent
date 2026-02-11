@@ -1,0 +1,144 @@
+{
+  "91179_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2025）长沙市不动产权第0318568号",
+      "owner_name": "陈凤娇",
+      "building_area": 129.88,
+      "usage": "住宅",
+      "total_price": 636400
+    }
+  ],
+  "91419_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘(2025)望城区不动产权第0025067号",
+      "owner_name": "杨明洁",
+      "building_area": 87.39,
+      "usage": "住宅",
+      "total_price": 697600
+    }
+  ],
+  "92064_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2025）长沙市不动产权第0333363号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 9708.7,
+      "usage": "仓储用地/仓储",
+      "total_price": 31300800
+    },
+    {
+      "object_num": "估价对象2",
+      "certificate_number": "湘（2025）长沙市不动产权第0333365号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 32.75,
+      "usage": "仓储用地/公用设施",
+      "total_price": 105600
+    },
+    {
+      "object_num": "估价对象3",
+      "certificate_number": "湘（2025）长沙市不动产权第0333364号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 38.08,
+      "usage": "仓储用地/公用设施",
+      "total_price": 122800
+    },
+    {
+      "object_num": "估价对象4",
+      "certificate_number": "湘（2025）长沙市不动产权第0333366号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 5652.42,
+      "usage": "仓储用地/仓储",
+      "total_price": 18223400
+    },
+    {
+      "object_num": "估价对象5",
+      "certificate_number": "湘（2025）长沙市不动产权第0333371号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 4064.98,
+      "usage": "仓储用地/仓储",
+      "total_price": 13349400
+    },
+    {
+      "object_num": "估价对象6",
+      "certificate_number": "湘（2025）长沙市不动产权第0333373号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 846.24,
+      "usage": "仓储用地/仓储",
+      "total_price": 2419400
+    },
+    {
+      "object_num": "估价对象7",
+      "certificate_number": "湘（2025）长沙市不动产权第0333372号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 11821.85,
+      "usage": "仓储用地/仓储",
+      "total_price": 38113600
+    },
+    {
+      "object_num": "估价对象8",
+      "certificate_number": "湘（2025）长沙市不动产权第0333508号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 104.37,
+      "usage": "仓储用地/公用设施",
+      "total_price": 298400
+    },
+    {
+      "object_num": "估价对象9",
+      "certificate_number": "湘（2025）长沙市不动产权第0333509号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 311.1,
+      "usage": "仓储用地/公用设施",
+      "total_price": 889400
+    },
+    {
+      "object_num": "估价对象10",
+      "certificate_number": "湘（2025）长沙市不动产权第0333507号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 239.51,
+      "usage": "仓储用地/公用设施",
+      "total_price": 684800
+    },
+    {
+      "object_num": "估价对象11",
+      "certificate_number": "湘（2025）长沙市不动产权第0333506号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 10213.47,
+      "usage": "仓储用地/仓储",
+      "total_price": 33214200
+    },
+    {
+      "object_num": "估价对象12",
+      "certificate_number": "湘（2025）长沙市不动产权第0333510号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 6966.79,
+      "usage": "仓储用地/仓储",
+      "total_price": 22656600
+    },
+    {
+      "object_num": "估价对象13",
+      "certificate_number": "湘（2025）长沙市不动产权第0333505号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 30.71,
+      "usage": "仓储用地/仓储",
+      "total_price": 87800
+    },
+    {
+      "object_num": "估价对象14",
+      "certificate_number": "湘（2025）长沙市不动产权第0333503号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 30.71,
+      "usage": "仓储用地/仓储",
+      "total_price": 87800
+    },
+    {
+      "object_num": "估价对象15",
+      "certificate_number": "湘（2025）长沙市不动产权第0333496号",
+      "owner_name": "长沙北深建设发展有限公司",
+      "building_area": 50.17,
+      "usage": "仓储用地/仓储",
+      "total_price": 143400
+    }
+  ]
+}

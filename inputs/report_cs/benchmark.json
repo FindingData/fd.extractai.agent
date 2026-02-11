@@ -1,0 +1,42 @@
+{
+  "1_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2023）衡阳县不动产权第0003880号",
+      "owner_name": "陈名武，衡阳伯泰健康产业有限责任公司，涂医明",
+      "building_area": 12266.1,
+      "usage": "商业服务、非成套住宅",
+      "total_price": 35142829
+    }
+  ],
+  "2_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘(2023)长沙市不动产权第0386909号",
+      "owner_name": "杨瑾",
+      "building_area": 40.75,
+      "usage": "办公",
+      "total_price": 313816
+    }
+  ],
+  "3_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘（2017）长沙市不动产权第0286952/0286953号",
+      "owner_name": "汤钦钊、李燕",
+      "building_area": 116.48,
+      "usage": "商业",
+      "total_price": 1182039
+    }
+  ],
+  "4_short": [
+    {
+      "object_num": "估价对象1",
+      "certificate_number": "湘(2020)长沙市不动产权第0165556号",
+      "owner_name": "长沙银行股份有限公司白沙支行",
+      "building_area": 1663.82,
+      "usage": "商业",
+      "total_price": 15117500
+    }
+  ]
+}
