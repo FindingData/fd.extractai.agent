@@ -1,0 +1,130 @@
+{
+  "stats": {
+    "letter_to_client": 1,
+    "valuation_tables": 11
+  },
+  "preview": {
+    "letter_to_client": [
+      {
+        "file": "letter_to_client__1.md",
+        "title": "致函（fallback）",
+        "meta": {
+          "fallback": true
+        },
+        "preview": "房地产抵押估价报告  |  |  |  | | --- | --- | --- | | 估价报告编号： | 湘经典（2025）长房012611A号 | | | 估价项目名称： | 开福区彭家巷617号金霞智慧文化产业园1栋101等15套（总建筑面积：50111.85㎡）（总建筑面..."
+      }
+    ],
+    "valuation_tables": [
+      {
+        "file": "valuation_tables__1.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 0
+        },
+        "preview": "本公司根据估价目的，遵循估价原则，采用科学合理的估价方法，在认真分析现有资料的基础上，经过测算，结合估价经验与对影响房地产市场价格因素进行分析，确定估价对象满足本报告中全部假设与限制条件，在市场上有足够的买方和卖方，并且进入市场无障碍的条件下，于价值时点的假定未设立法定优先受偿权..."
+      },
+      {
+        "file": "valuation_tables__2.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 1
+        },
+        "preview": "估价结果一览表"
+      },
+      {
+        "file": "valuation_tables__3.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 2
+        },
+        "preview": "本公司根据估价目的，遵循估价原则，采用科学合理的估价方法，在认真分析现有资料的基础上，经过测算，结合估价经验与对影响房地产市场价格因素进行分析，确定估价对象满足本报告中全部假设与限制条件，在市场上有足够的买方和卖方，并且进入市场无障碍的条件下，于价值时点的假定未设立法定优先受偿权..."
+      },
+      {
+        "file": "valuation_tables__4.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 3
+        },
+        "preview": "估价结果一览表"
+      },
+      {
+        "file": "valuation_tables__5.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 4
+        },
+        "preview": "对于法律上允许、技术上可能的每一种使用方式，还要进行财务可行性检验，只有收入价值大于支出现值的使用方式，才具有经济可行性，否则应被淘汰。我们对估价对象进行了经济可行性检验，针对每一种使用方式(如公寓、商业、住宅等)，预测了各种使用方式未来的收入和支出流量，将其用现值表示后进行比较..."
+      },
+      {
+        "file": "valuation_tables__6.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 5
+        },
+        "preview": "（5）编制比较因素条件指数表根据估价对象与比较实例各种因素具体情况，编制比较因素条件指数表。比较因素指数确定如下:"
+      },
+      {
+        "file": "valuation_tables__7.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 6
+        },
+        "preview": "根据比较因素条件指数表，根据比较因素制定估价对象的比较因素修正系数表。"
+      },
+      {
+        "file": "valuation_tables__8.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 7
+        },
+        "preview": "管理费用是指房地产开发商为组织和管理房地产开发经营活动的必要支出，包括房地产开发商的人员工资及福利费、办公费、差旅费等，结合永州市开发企业实际情况，确定估价对象的管理费率按建设成本的3%计算。具体详见“建筑物价值测算过程表”"
+      },
+      {
+        "file": "valuation_tables__9.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 8
+        },
+        "preview": "本公司根据估价目的，遵循估价原则，采用科学合理的估价方法，在认真分析现有资料的基础上，经过测算，结合估价经验与对影响房地产市场价格因素进行分析，确定估价对象在市场上有足够的买方和卖方，并且进入市场无障碍的条件下，于价值时点的市场价格为16169.74万元 (大写：人民币壹亿陆仟壹..."
+      },
+      {
+        "file": "valuation_tables__10.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 9
+        },
+        "preview": "估价结果一览表"
+      },
+      {
+        "file": "valuation_tables__11.md",
+        "title": "paragraph",
+        "meta": {
+          "pattern": "估价(对象|结果).*(表|列表)",
+          "kind": "paragraph",
+          "match_index": 10
+        },
+        "preview": "2. 估价对象实地查勘表"
+      }
+    ]
+  }
+}

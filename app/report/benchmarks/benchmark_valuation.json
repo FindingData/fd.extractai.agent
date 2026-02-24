@@ -1,0 +1,21 @@
+{
+  "name": "valuation_table_smoke",
+  "extractor_slug": "valuation",
+  "input_md": "估价结果一览表\\n| 序号 | 权证号 | 权利人 | 建筑面积(㎡) | 单价(元/㎡) | 总价(元) |\\n| 1 | 湘房权证字第001号 | 张三 | 120.5 | 10500 | 1265250 |\\n| 2 | 湘房权证字第002号 | 李四 | 98.3 | 10000 | 983000 |",
+  "expected": [
+    {
+      "certificate_number": "湘房权证字第001号",
+      "owner_name": "张三",
+      "building_area": 120.5,
+      "unit_price": 10500,
+      "total_price": 1265250
+    },
+    {
+      "certificate_number": "湘房权证字第002号",
+      "owner_name": "李四",
+      "building_area": 98.3,
+      "unit_price": 10000,
+      "total_price": 983000
+    }
+  ]
+}

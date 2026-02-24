@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\code\fd\fd.extractai.agent\main_pipeline.py", line 206, in extract_from_short
+    rows = ex(ctx)
+  File "C:\code\fd\fd.extractai.agent\app\report\extractors\base.py", line 40, in __call__
+    text = self.get_input_text(context)
+  File "C:\code\fd\fd.extractai.agent\app\report\extractors\base.py", line 67, in get_input_text
+    return context.ensure_markdown()
+           ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\code\fd\fd.extractai.agent\app\report\context.py", line 37, in ensure_markdown
+    raise ValueError("Markdown content is required before slicing.")
+ValueError: Markdown content is required before slicing.

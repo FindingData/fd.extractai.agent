@@ -1,0 +1,10 @@
+请提取报告“估价结论 / 价值时点 / 价值意见”部分的关键信息。
+
+输出字段：
+- `value_date`: 价值时点（YYYY-MM-DD，如果只给出年月则补-01）。
+- `value_type`: 对应的价值类型或假设条件。
+- `total_value`: 估价总价（人民币，数字）。
+- `unit_price`: 单价（若存在，元/㎡）。
+- `value_statement`: 原文中的结论表述。
+
+每找到一个完整结论，返回一个 `valuation_conclusion`。

@@ -1,0 +1,19 @@
+{
+  "name": "assumption_block_smoke",
+  "extractor_slug": "assumptions",
+  "input_md": "重要假设与限制\\n1. 本次估价假设委估资产权属清晰，无任何纠纷。\\n2. 评估结果仅对本报告载明的估价目的有效。\\n限制条件\\n1. 本报告仅供抵押贷款审批使用，未经书面许可不得他用。",
+  "expected": [
+    {
+      "category": "重要假设",
+      "description": "本次估价假设委估资产权属清晰，无任何纠纷。"
+    },
+    {
+      "category": "重要假设",
+      "description": "评估结果仅对本报告载明的估价目的有效。"
+    },
+    {
+      "category": "限制条件",
+      "description": "本报告仅供抵押贷款审批使用，未经书面许可不得他用。"
+    }
+  ]
+}
