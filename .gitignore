@@ -21,6 +21,9 @@ build/
 # 忽略 dist 目录
 dist/
 
+# 忽略 inputs 目录
+inputs/
+
 # 忽略 Python 缓存文件夹
 __pycache__/
 *.py[cod]
