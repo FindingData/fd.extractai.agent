@@ -1,6 +1,10 @@
 
 import re
-from typing import List
+from typing import List,Union
+from markitdown import MarkItDown
+import shutil
+import subprocess
+from pathlib import Path
 from markitdown import MarkItDown
 
 def extract_user_prompt(text):
@@ -16,7 +20,61 @@ def convert_docx_to_md(input_path: str) -> str:
 
     text = result.text_content
     return text
-   
+ 
+def convert_word_to_md(input_path: str | Path) -> str:
+    path_obj = Path(input_path).resolve()
+    suffix = path_obj.suffix.lower()
+    
+    # 强制检查：如果是 .doc 但没装 LibreOffice，直接报错给出清晰提示
+    if suffix == ".doc":
+        if not (shutil.which("soffice") or shutil.which("libreoffice")):
+            raise RuntimeError("系统缺失 LibreOffice，无法处理 .doc 文件。请安装并配置 PATH。")
+
+    md = MarkItDown()
+
+    try:
+        # 情况 A: .docx 格式，直接走原生高性能转换
+        if suffix == ".docx":
+            return md.convert(str(path_obj)).text_content
+
+        # 情况 B: .doc 格式，手动触发标准化，防止 MarkItDown 内部识别失败
+        if suffix == ".doc":
+            # 1. 构造一个临时目标路径 (例如 test.doc -> test_auto.docx)
+            temp_docx = path_obj.with_suffix(".__temp__.docx")
+            
+            # 2. 调用 LibreOffice (模拟 PR #36 的底层行为，但更可控)
+            # 使用 headless 模式静默转换
+            cmd = [
+                "soffice",
+                "--headless",
+                "--convert-to", "docx",
+                "--outdir", str(path_obj.parent),
+                str(path_obj)
+            ]
+            
+            # 执行转换
+            result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            
+            # LibreOffice 默认生成的名称是原名.docx，我们定位它
+            generated_file = path_obj.with_suffix(".docx")
+            
+            if generated_file.exists():
+                # 3. 将转换后的 docx 交给 MarkItDown 处理
+                md_content = md.convert(str(generated_file)).text_content
+                
+                # 4. 清理：删除 LibreOffice 产生的临时 docx
+                generated_file.unlink()
+                return md_content
+            else:
+                raise FileNotFoundError(f"LibreOffice 未能生成目标文件: {result.stderr}")
+
+    except Exception as e:
+        # 捕获所有异常并包装，方便 Pipeline 调试
+        raise RuntimeError(f"Word 转换失败 [{suffix}]: {str(e)}")
+
+    # 兜底：如果是其他格式，直接尝试
+    return md.convert(str(path_obj)).text_content
+
 
 def extract_clean_json(text: str) -> str:
     # 1. 清除 <think>...</think> 块
