@@ -1,0 +1,130 @@
+version: 1
+defaults:
+  dedup: true
+  max_chars: 20000
+
+rulesets:
+  house:
+    name: house_v1
+    defaults:
+      dedup: true
+      max_chars: 20000
+    steps:
+      - key: purpose
+        mode: by_heading
+        targets: ["估价目的与用途", "评估目的与用途"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: assumptions
+        mode: by_heading
+        targets: ["重要假设与限制条件", "假设与限制条件"]
+        params: { merge: true, max_chars: 14000 }
+
+      - key: method
+        mode: by_heading
+        targets: ["估价方法", "评估方法"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: conclusion
+        mode: by_heading
+        targets: ["估价结论", "评估结论"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: targets_section
+        mode: by_heading
+        targets: ["估价对象", "估价结果", "估价结果一览表", "估价对象基本情况", "估价对象情况"]
+        params: { merge: true, max_chars: 25000 }
+        missing: empty
+
+      - key: valuation_tables
+        mode: by_table_after
+        within: targets_section
+        targets: ["估价结果一览表", "估价结果汇总表", "估价对象一览表", "估价结果列表"]
+        params:
+          max_table_chars: 12000
+          min_table_rows: 3
+          dedup: true
+          max_sections: 6
+        missing: empty
+
+  land:
+    name: land_v1
+    defaults:
+      dedup: true
+      max_chars: 22000
+    steps:
+      - key: purpose
+        mode: by_heading
+        targets: ["估价目的与用途"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: assumptions
+        mode: by_heading
+        targets: ["重要假设与限制条件"]
+        params: { merge: true, max_chars: 14000 }
+
+      - key: method
+        mode: by_heading
+        targets: ["估价方法"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: conclusion
+        mode: by_heading
+        targets: ["估价结论"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: targets_section
+        mode: by_heading
+        targets: ["宗地基本情况", "宗地基本情况一览表", "宗地信息", "估价结果一览表"]
+        params: { merge: true, max_chars: 26000 }
+
+      - key: valuation_tables
+        mode: by_table_after
+        within: targets_section
+        targets: ["宗地基本情况一览表", "估价结果一览表", "宗地信息一览表"]
+        params:
+          max_table_chars: 12000
+          min_table_rows: 3
+          dedup: true
+          max_sections: 8
+
+  asset:
+    name: asset_v1
+    defaults:
+      dedup: true
+      max_chars: 22000
+    steps:
+      - key: purpose
+        mode: by_heading
+        targets: ["评估目的与用途", "估价目的与用途"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: assumptions
+        mode: by_heading
+        targets: ["重要假设与限制条件"]
+        params: { merge: true, max_chars: 14000 }
+
+      - key: method
+        mode: by_heading
+        targets: ["评估方法", "估价方法"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: conclusion
+        mode: by_heading
+        targets: ["评估结论", "估价结论"]
+        params: { merge: true, max_chars: 12000 }
+
+      - key: targets_section
+        mode: by_heading
+        targets: ["资产评估对象", "评估对象", "资产清单", "资产评估对象明细"]
+        params: { merge: true, max_chars: 26000 }
+
+      - key: valuation_tables
+        mode: by_table_after
+        within: targets_section
+        targets: ["资产评估对象明细", "资产清单", "评估对象明细"]
+        params:
+          max_table_chars: 12000
+          min_table_rows: 3
+          dedup: true
+          max_sections: 10
