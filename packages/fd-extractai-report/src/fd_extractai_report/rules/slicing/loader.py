@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-from app.report.rules.slicing.schema import SliceRuleSet, SliceStep
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
 
 
 def ruleset_from_dict(d: Dict[str, Any]) -> SliceRuleSet:

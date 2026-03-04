@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List,Pattern, Tuple,Optional
 
-from app.report.context import ReportContext, ReportSection
-from app.report.sections.base import SectionSlicer
-from app.report.rules.slicing.schema import SliceRuleSet, SliceStep
+from fd_extractai_report.context import ReportContext, ReportSection
+from fd_extractai_report.sections.base import SectionSlicer
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
 from app.utils.markdown_utils import bucket_by_targets, sectionize, find_blocks_by_pattern
 
 

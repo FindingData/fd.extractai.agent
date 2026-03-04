@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 # ✅ 添加项目根目录到 sys.path（按你的项目结构调整）
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from app.report.pipeline import ReportPipeline
+from fd_extractai_report.pipeline import ReportPipeline
 
 # ✅ 用于定位你实际 import 到的 detect 函数文件（抓“跑的不是你改的那份代码”）
 import inspect

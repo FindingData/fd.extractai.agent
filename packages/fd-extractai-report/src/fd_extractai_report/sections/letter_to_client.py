@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from app.report.context import ReportContext, ReportSection
-from app.report.sections.base import SectionSlicer
+from fd_extractai_report.context import ReportContext, ReportSection
+from fd_extractai_report.sections.base import SectionSlicer
 
 
 LETTER_SECTION_CONFIG = {

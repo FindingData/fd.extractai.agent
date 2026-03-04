@@ -5,10 +5,10 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Callable
 
-from app.report.pipeline import ReportPipeline, PipelineResult  # 你把方案A那份放到这里即可
-from app.report.sections.LetterToClientRegexSlicer import LetterToClientRegexSlicer  # 你把切片器放到这里即可
-from app.report.sections.valuation_tables import ValuationTablesSlicer  # 你把切片器放到这里即可
-from app.report.extractors.valuation import ValuationExtractor  # 你把抽取器放到这里即可
+from fd_extractai_report.pipeline import ReportPipeline, PipelineResult  # 你把方案A那份放到这里即可
+from fd_extractai_report.sections.LetterToClientRegexSlicer import LetterToClientRegexSlicer  # 你把切片器放到这里即可
+from fd_extractai_report.sections.valuation_tables import ValuationTablesSlicer  # 你把切片器放到这里即可
+
 # ============================================================
 # 文件落盘工具
 # ============================================================
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     current_file = Path(__file__).resolve()
     app_root = current_file.parent  # 你自己确认路径
 
-    input_dir = app_root / "inputs" / "report_detect"
+    input_dir = app_root / "inputs" / "report_hf"
 
     md_dir = input_dir / "_md"
     short_dir = input_dir / "_short"
@@ -222,7 +222,7 @@ if __name__ == "__main__":
             ),
         ],
         extractors=[
-            ValuationExtractor(),
+           
         ],
     )
 

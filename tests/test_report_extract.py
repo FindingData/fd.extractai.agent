@@ -8,20 +8,20 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from fd_extractai_report import ReportPipeline 
 
-from app.report.pipeline import ReportPipeline
+from fd_extractai_report.pipeline import ReportPipeline
 
 # ✅ slicer + slicing rulesets（按你项目实际路径）
-from app.report.sections.rule_engine_slicer import RuleEngineSlicer
-from app.report.rules.slicing.default_rulesets import (
+from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
+from fd_extractai_report.rules.slicing.default_rulesets import (
     ruleset_house as slice_ruleset_house,
     ruleset_land as slice_ruleset_land,
     ruleset_asset as slice_ruleset_asset,
 )
 
 # ✅ extractor runner（按你项目实际路径）
-from app.report.extractors.rule_engine_extractor import RuleEngineExtractorRunner
+from fd_extractai_report.extractors.rule_engine_extractor import RuleEngineExtractorRunner
 
 
 # -----------------------------
@@ -88,7 +88,6 @@ def _price_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "ok": True,
         "total_price": total_price,
         "unit_price": row.get("unit_price"),
-        "area": row.get("area"),
         "items_count": len(row.get("items") or []) if isinstance(row.get("items"), list) else None,
         "raw_text": row.get("raw_text"),
         "report_type": row.get("report_type"),

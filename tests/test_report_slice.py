@@ -10,11 +10,11 @@ from typing import Any, Dict, List, Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from app.report.pipeline import ReportPipeline
+from fd_extractai_report.pipeline import ReportPipeline
 
 # ✅ 你已有的 ruleset / slicer
-from app.report.sections.rule_engine_slicer import RuleEngineSlicer
-from app.report.rules.slicing.default_rulesets import (
+from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
+from fd_extractai_report.rules.slicing.default_rulesets import (
     ruleset_house,
     ruleset_land,
     ruleset_asset,

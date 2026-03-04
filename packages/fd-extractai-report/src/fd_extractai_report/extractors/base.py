@@ -7,9 +7,9 @@ from typing import Any, Dict, List, Optional, Sequence
 import langextract as lx
 from langextract.core import data
 
-from app.report.context import ReportContext
+from fd_extractai_report.context import ReportContext
 from config import CONFIG
-from app.report.rules.extracting.schema import ExtractorSpec  # ✅ 只引用 spec（不再有 ExampleSpec）
+from fd_extractai_report.rules.extracting.schema import ExtractorSpec  # ✅ 只引用 spec（不再有 ExampleSpec）
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 

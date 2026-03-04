@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.report.rules.slicing.schema import SliceRuleSet, SliceStep
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
 
 # 建议：这些 key 尽量与 extractor.target_slice_key / input_slice_keys 对齐
 # purpose / assumptions / method / conclusion / targets_section / valuation_tables 等

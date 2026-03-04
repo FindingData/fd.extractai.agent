@@ -4,8 +4,8 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Dict, Optional
 
-from app.report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec, validate_ruleset
-from app.report.rules.extracting.default_rulesets import DEFAULT_RULESETS
+from fd_extractai_report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec, validate_ruleset
+from fd_extractai_report.rules.extracting.default_rulesets import DEFAULT_RULESETS
 
 def merge_ruleset(base: ExtractRuleSet, override: ExtractRuleSet) -> ExtractRuleSet:
     # 1) ruleset-level 覆盖

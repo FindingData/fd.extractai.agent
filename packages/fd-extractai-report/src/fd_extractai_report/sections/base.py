@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Sequence
 
-from app.report.context import ReportContext, ReportSection
+from fd_extractai_report.context import ReportContext, ReportSection
 
 
 class SectionSlicer(ABC):

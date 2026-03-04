@@ -1,8 +1,8 @@
 import re
 from typing import Iterable, List, Optional
 
-from app.report.context import ReportContext, ReportSection
-from app.report.sections.base import SectionSlicer
+from fd_extractai_report.context import ReportContext, ReportSection
+from fd_extractai_report.sections.base import SectionSlicer
 
 
 class LetterToClientRegexSlicer(SectionSlicer):

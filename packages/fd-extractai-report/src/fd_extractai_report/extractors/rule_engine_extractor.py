@@ -4,10 +4,10 @@ from dataclasses import replace
 from typing import Dict, List, Optional
 
 from langextract.core import data as lxdata
-from app.report.context import ReportContext
-from app.report.extractors.base import Extractor
-from app.report.rules.extracting.registry import get_ruleset
-from app.report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec
+from fd_extractai_report.context import ReportContext
+from fd_extractai_report.extractors.base import Extractor
+from fd_extractai_report.rules.extracting.registry import get_ruleset
+from fd_extractai_report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec
 
 
 class RuleEngineExtractorRunner:

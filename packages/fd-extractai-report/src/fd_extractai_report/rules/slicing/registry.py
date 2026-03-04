@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Literal
 
-from app.report.rules.slicing.schema import SliceRuleSet, MergeStrategy, merge_rulesets
-from app.report.rules.slicing.default_rulesets import DEFAULT_RULESETS_BY_TYPE, RULESET_HOUSE
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, MergeStrategy, merge_rulesets
+from fd_extractai_report.rules.slicing.default_rulesets import DEFAULT_RULESETS_BY_TYPE, RULESET_HOUSE
 
 
 ReportType = Literal["house", "land", "asset"]

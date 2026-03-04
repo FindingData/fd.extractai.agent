@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-from app.report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec, validate_ruleset
+from fd_extractai_report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec, validate_ruleset
 
 def ruleset_from_dict(d: Dict[str, Any]) -> ExtractRuleSet:
     ex_specs = []

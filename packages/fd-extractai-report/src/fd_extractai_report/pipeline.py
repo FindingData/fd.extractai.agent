@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Literal
 
-from app.report.context import ReportContext, ReportSection
+from fd_extractai_report.context import ReportContext, ReportSection
 from app.utils.report_utils import detect_report_type_from_md_head
 from app.utils.text_utils import convert_word_to_md
 

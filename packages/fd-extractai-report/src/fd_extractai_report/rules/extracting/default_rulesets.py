@@ -1,9 +1,9 @@
 # app/report/rules/extracting/default_rulesets.py
 from __future__ import annotations
 
-from app.report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec
-from app.report.examples.report_examples import EXAMPLES_BY_TYPE
-from app.report.examples.general_examples import GENERAL_EXAMPLES
+from fd_extractai_report.rules.extracting.schema import ExtractRuleSet, ExtractorSpec
+from fd_extractai_report.examples.report_examples import EXAMPLES_BY_TYPE
+from fd_extractai_report.examples.general_examples import GENERAL_EXAMPLES
 
 
 # -----------------------------
