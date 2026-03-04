@@ -2,6 +2,28 @@ from __future__ import annotations
 
 from langextract.core import data
 
+from langextract.core import data
+
+ 
+example_price =  data.ExampleData(
+        text="估价结果：总价为100万元，单价为5000元/平方米。",
+        extractions=[
+            data.Extraction(
+                "price_item",
+                "总价为100万元",
+                attributes={
+                    "total_price": 1000000,   # 100万元 => 1,000,000元
+                    "unit_price": 5000,
+                    "currency": "CNY",
+                    "unit": "万元",
+                    "raw_text": "总价为100万元，单价为5000元/平方米",
+                    "confidence": "medium",
+                },
+            )
+        ],
+    )
+ 
+
 example_purpose = data.ExampleData(
     text="""
 估价目的与用途
@@ -82,6 +104,7 @@ example_conclusion = data.ExampleData(
 )
 
 GENERAL_EXAMPLES = {
+    "price":[example_price],
     "purpose": [example_purpose],
     "assumptions": [example_assumption],
     "method": [example_method],

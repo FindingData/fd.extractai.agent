@@ -10,6 +10,27 @@ ReportType = Literal["house", "land", "asset"]
 # =========================================================
 
 # -------- HOUSE --------
+house_example_price = data.ExampleData(
+    text="""
+本公司根据估价目的，遵循估价原则，采用科学合理的估价方法，在认真分析现有资料的基础上，经过测算，结合估价经验与对影响房地产市场价格因素进行分析，确定估价对象在市场上有足够的买方和卖方，并且进入市场无障碍的条件下，于价值时点的假定未设立法定优先受偿权下的市场价值单价为7554元/平方米，总价为112.04万元，估价师知悉的法定优先受偿款为0元，最后确定委评房地产的抵押价值单价为7554元/平方米，总价为112.04万元（大写：人民币壹佰壹拾贰万零肆佰元整)。估价结果汇总如下表所示。
+""",
+    extractions=[
+        data.Extraction(
+            "price_item",
+            "总价为112.04万元",
+            attributes={
+                # ✅ 统一口径：总价用“元”
+                "total_price": 1120400,          # 112.04 万元 => 1,120,400 元
+                "unit_price": 7554,              # 元/㎡
+                "unit": "万元",
+                "raw_text": "市场价值单价为7554元/平方米，总价为112.04万元；抵押价值单价为7554元/平方米，总价为112.04万元",
+                "report_type": "house",
+                "confidence": "high",
+            },
+        )
+    ],
+)
+
 house_example_purpose = data.ExampleData(
     text="""
 估价目的与用途
@@ -98,6 +119,38 @@ house_example_assumption = data.ExampleData(
 )
 
 # -------- LAND --------
+land_example_price = data.ExampleData(
+    text="""
+估价对象：
+① 未设定法定优先受偿款权下的市场价格：
+土地面积6893.10 平方米；
+单位地价：350元/㎡；
+总 地 价：2412585 元；
+大写：人民币贰佰肆拾壹万贰仟伍佰捌拾伍元整；
+② 估价师知悉的法定优先受偿款为：零。
+③ 估价对象的抵押总价为：
+土地面积6893.10 平方米；
+单位地价：350元/㎡；
+总 地 价：2412585 元；
+大写：人民币贰佰肆拾壹万贰仟伍佰捌拾伍元整；
+估价结果详见附表《土地估价结果一览表》（表1-1）。
+""",
+    extractions=[
+        data.Extraction(
+            "price_item",
+            "总 地 价：2412585 元",
+            attributes={
+                # ✅ 已经是元，直接用
+                "total_price": 2412585,
+                "unit_price": 350,
+                "raw_text": "土地面积6893.10平方米；单位地价：350元/㎡；总地价：2412585元；抵押总价：2412585元",
+                "report_type": "land",
+                "confidence": "high",
+            },
+        )
+    ],
+)
+
 land_example_purpose = data.ExampleData(
     text="""
 估价目的与用途
@@ -188,6 +241,29 @@ land_example_assumption = data.ExampleData(
 )
 
 # -------- ASSET --------
+from langextract.core import data
+
+asset_example_price = data.ExampleData(
+    text="""
+八、评估结论：经实施评估程序后，于评估基准日，委估专利权的市场价值评估值为：人民币壹仟贰佰伍拾陆万肆仟伍佰元整（￥1,256.45万元），详细情况见资产评估明细表。
+""",
+    extractions=[
+        data.Extraction(
+            "price_item",
+            "（￥1,256.45万元）",
+            attributes={
+                # ✅ 总价统一为“元”
+                "total_price": 12564500,   # 1,256.45 万元 => 12,564,500 元
+                "unit_price":0,
+                "unit": "万元",
+                "raw_text": "委估专利权的市场价值评估值为：人民币壹仟贰佰伍拾陆万肆仟伍佰元整（￥1,256.45万元）",
+                "report_type": "asset",
+                "confidence": "high",
+            },
+        )
+    ],
+)
+
 asset_example_purpose = data.ExampleData(
     text="""
 评估目的与用途
@@ -366,6 +442,7 @@ asset_example_targets = data.ExampleData(
 
 EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
     "house": {
+        "price":[house_example_price],
         "purpose": [house_example_purpose],
         "assumptions": [house_example_assumption],
         "method": [house_example_method],
@@ -373,6 +450,7 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "targets": [house_example_targets_table],
     },
     "land": {
+        "price":[land_example_price],
         "purpose": [land_example_purpose],
         "assumptions": [land_example_assumption],
         "method": [land_example_method],
@@ -380,6 +458,7 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "targets": [land_example_targets],
     },
     "asset": {
+         "price":[asset_example_price],        
         "purpose": [asset_example_purpose],
         "assumptions": [asset_example_assumption],
         "method": [asset_example_method],

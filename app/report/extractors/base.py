@@ -1,73 +1,29 @@
+# app/report/extractors/base.py  (你的 Extractor 所在文件)
 from __future__ import annotations
 
-from abc import ABC
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence
 
 import langextract as lx
 from langextract.core import data
 
 from app.report.context import ReportContext
 from config import CONFIG
+from app.report.rules.extracting.schema import ExtractorSpec  # ✅ 只引用 spec（不再有 ExampleSpec）
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
-ExampleSpec = Union[
-    Sequence[data.ExampleData],                     # 直接给 list/tuple
-    Mapping[str, Sequence[data.ExampleData]],       # {"house":[...], "fallback":[...]}
-]
 
-
-@dataclass
-class ExtractorSpec:
-    """
-    配置驱动的抽取任务定义（可选使用）。
-    你可以继续写子类；也可以只用 spec 来构造一个 Extractor 实例。
-    """
-    slug: str
-    prompt_filename: str
-
-    # 输入来源：支持多个切片合并；默认全文
-    input_slice_keys: List[str] = field(default_factory=lambda: ["__full__"])
-
-    # 切片缺失时怎么处理： "empty" | "full" | "raise"
-    missing_slice_policy: str = "empty"
-
-    # examples：支持按 report_type 选择 + fallback
-    examples: ExampleSpec = field(default_factory=tuple)
-
-    # 输出通用后处理：补默认值/注入 context 字段
-    defaults: Dict[str, Any] = field(default_factory=dict)
-    inject_context_fields: List[str] = field(default_factory=list)
-
-    # 输入合并时是否加标题
-    add_titles: bool = True
-
-    # 输入最大长度
-    max_input_chars: int = 12000
-
-
-class Extractor(ABC):
-    """Shared LangExtract wiring for every semantic extractor."""
-
-    # --- 旧接口：保持兼容 ---
-    slug: str
+class Extractor:
+    slug: str = ""
     target_slice_key: str = "__full__"
-    prompt_filename: str
-
-    # examples 可以是 list，也可以是 {"house":..., "fallback":...}
-    examples: ExampleSpec = ()
-
-    # --- 新能力：默认不开启，不影响旧子类 ---
-    input_slice_keys: Optional[List[str]] = None     # 若不设，回退到 target_slice_key
-    missing_slice_policy: str = "empty"              # "empty" | "full" | "raise"
+    prompt_filename: str = ""
+    # ✅ 只保留“最终 examples”
+    examples: Sequence[data.ExampleData] = ()
+    input_slice_keys: Optional[List[str]] = None
+    missing_slice_policy: str = "empty"
     add_titles: bool = True
-    max_input_chars: int = 12000
-
-    defaults: Dict[str, Any] = {}
-    inject_context_fields: List[str] = []
-
+    max_input_chars: int = 12000    
     def __init__(
         self,
         *,
@@ -76,7 +32,8 @@ class Extractor(ABC):
         max_char_buffer: int = 8192,
         num_ctx: int = 18000,
         timeout: int = 10 * 60,
-        spec: Optional[ExtractorSpec] = None,        # ✅ 可选：配置驱动
+        spec: Optional[ExtractorSpec] = None,
+        examples: Optional[Sequence[data.ExampleData]] = None,  # ✅ runner 解析后传进来
     ) -> None:
         self.model_id = model_id or CONFIG.LOCAL_MODEL_NAME
         self.model_url = model_url or CONFIG.LOCAL_MODEL_URL
@@ -84,59 +41,47 @@ class Extractor(ABC):
         self.num_ctx = num_ctx
         self.timeout = timeout
 
-        # ✅ 如果传了 spec，用 spec 覆盖（用于“动态配置，不写子类”）
+        self.defaults: Dict[str, Any] = {}
+        self.inject_context_fields: List[str] = []
+
         self._spec = spec
         if spec is not None:
             self.slug = spec.slug
             self.prompt_filename = spec.prompt_filename
-            self.input_slice_keys = spec.input_slice_keys
+            self.input_slice_keys = list(spec.input_slice_keys or [])
             self.missing_slice_policy = spec.missing_slice_policy
-            self.examples = spec.examples
-            self.defaults = spec.defaults
-            self.inject_context_fields = spec.inject_context_fields
+            self.defaults = dict(spec.defaults or {})
+            self.inject_context_fields = list(spec.inject_context_fields or [])
             self.add_titles = spec.add_titles
             self.max_input_chars = spec.max_input_chars
 
+        # ✅ 最终 examples 入口：优先使用传入的 examples，否则用 self.examples
+        if examples is not None:
+            self.examples = list(examples)
+
     def __call__(self, context: ReportContext) -> List[dict]:
         text = self.get_input_text(context)
-        if not text.strip():
-            return []
-
+        if not text or not text.strip():
+            return []        
         doc = self.run_langextract(text, context=context)
         return self.post_process(doc, context=context)
-
+    
     def load_prompt(self) -> str:
-        prompt_path = PROMPTS_DIR / self.prompt_filename
-        return prompt_path.read_text(encoding="utf-8")
-
-    # ✅ 支持 report_type-aware examples
-    def get_examples(self, context: ReportContext) -> Sequence[data.ExampleData]:
-        ex = self.examples or ()
-        if isinstance(ex, Mapping):
-            rt = (context.metadata or {}).get("report_type")
-            if rt and rt in ex and ex[rt]:
-                return ex[rt]
-            return ex.get("fallback", ()) or ()
-        return ex
+        return (PROMPTS_DIR / self.prompt_filename).read_text(encoding="utf-8")
 
     def run_langextract(self, text: str, *, context: ReportContext):
         prompt = self.load_prompt()
-        examples = self.get_examples(context)
-
         return lx.extract(
             text,
             prompt_description=prompt,
-            examples=list(examples) if examples else [],
+            examples=list(self.examples) if self.examples else [],
             model_id=self.model_id,
             model_url=self.model_url,
             max_char_buffer=self.max_char_buffer,
-            language_model_params={
-                "num_ctx": self.num_ctx,
-                "timeout": self.timeout,
-            },
+            language_model_params={"num_ctx": self.num_ctx, "timeout": self.timeout},
         )
 
-    # ✅ 多切片输入 + 缺失策略 + 向后兼容 target_slice_key
+    # get_input_text / _truncate / post_process 你原来的保持不动即可
     def get_input_text(self, context: ReportContext) -> str:
         keys = self.input_slice_keys
         if not keys:
