@@ -126,8 +126,16 @@ class RuleEngineSlicer(SectionSlicer):
                 produced_total += len(secs)
 
                 for s in secs:
+                    context.add_slice(s)
                     yield s
-
+            if self.debug:
+                try:
+                    keys = list((context.slices or {}).keys())
+                except Exception:
+                    keys = []
+                print(f"   🧾 ctx.slices keys now: {keys}")
+                if step.key in (context.slices or {}):
+                    print(f"   🧾 ctx.slices['{step.key}'] count={len(context.slices[step.key])}")
             self._dbg(context, f"   ✅ produced={produced_total} sections for step={step.key}")
 
     def _resolve_base_texts(self, ctx: ReportContext, full: str, step: SliceStep) -> List[str]:
@@ -174,6 +182,8 @@ class RuleEngineSlicer(SectionSlicer):
             if not ends:
                 errors.append(f"steps[{i}]({s.key}).params.ends required for mode=by_regex_between")
             produced = self._by_regex_between(step, text, p, base_scope, base_idx)
+        elif step.mode == "by_segment_tables":
+            produced = self._by_segment_tables(step, text, p, base_scope, base_idx)
         else:
             self._dbg(ctx, f"   ❌ unknown mode={step.mode}")
             return
@@ -533,13 +543,37 @@ class RuleEngineSlicer(SectionSlicer):
 
         out: List[str] = []
         in_table = False
+        started_at = None
+
         for ln in lines:
-            if ln.strip() == "" and in_table:
+            s = ln.strip()
+
+            # 表格尚未开始：先把标题/说明行都收进来，直到遇到第一行表格
+            if not in_table:
+                out.append(ln)
+                if s.startswith("|"):
+                    in_table = True
+                    started_at = len(out) - 1
+                continue
+
+            # 表格开始后：
+            # 1) 允许空行（有些清洗会插空行），但空行不作为结束
+            if s == "":
+                out.append(ln)
+                continue
+
+            # 2) 只要遇到“不是表格行”，就结束
+            if not s.startswith("|"):
                 break
+
             out.append(ln)
-            if ln.strip().startswith("|"):
-                in_table = True
-        return "\n".join(out).strip()
+
+        # 如果根本没进表格，返回空（避免只返回标题）
+        if not in_table:
+            return ""
+
+        # 可选：只返回从表格开始那一行起（不要标题），看你需求
+        return "\n".join(out[started_at:]).strip()
 
     def _by_table_after(self, step: SliceStep, text: str, p: Dict[str, Any], base_scope: str, base_idx: int) -> List[ReportSection]:
         max_table_chars = int(p.get("max_table_chars") or 12000)
@@ -640,6 +674,228 @@ class RuleEngineSlicer(SectionSlicer):
             )
         ]
 
+    def _compile_patternlikes(self, patterns: Iterable[Any]) -> List[re.Pattern]:
+        """允许 targets 里同时传 regex 字符串 / re.Pattern"""
+        out: List[re.Pattern] = []
+        src = list(patterns or [])
+        if self.debug:
+            print(f"   🧪 compile_patternlikes: in={len(src)}")
+
+        for i, p in enumerate(src):
+            if isinstance(p, re.Pattern):
+                out.append(p)
+                if self.debug:
+                    print(f"      ✅ pat[{i}] re.Pattern: {p.pattern!r}")
+            elif isinstance(p, str) and p.strip():
+                try:
+                    rx = re.compile(p, re.I | re.M)
+                    out.append(rx)
+                    if self.debug:
+                        print(f"      ✅ pat[{i}] compiled: {p!r}")
+                except re.error as e:
+                    if self.debug:
+                        print(f"      ❌ pat[{i}] bad regex: {p!r} err={e}")
+                    continue
+            else:
+                if self.debug:
+                    print(f"      ⛔ pat[{i}] ignored: type={type(p).__name__} value={p!r}")
+
+        if self.debug:
+            print(f"   🧪 compile_patternlikes: out={len(out)}")
+        return out
+
+
+    def _by_segment_tables(
+        self,
+        step: SliceStep,
+        text: str,
+        p: Dict[str, Any],
+        base_scope: str,
+        base_idx: int,
+    ) -> List[ReportSection]:
+        """
+        段内表格抽取：
+        - 对 step.targets 逐个 regex 找 block（find_blocks_by_pattern）
+        - 如果 block 只是标题（短、含“表”），向下抓表
+        - 用 _looks_like_md_table 过滤
+        - truncate + 去重
+        """
+        max_table_chars = int(p.get("max_table_chars") or 12000)
+        min_table_rows = int(p.get("min_table_rows") or 3)
+        max_hits_per_pattern = int(p.get("max_hits_per_pattern") or 0)  # 0=不限（建议调试期先不限）
+
+        patterns = self._compile_patternlikes(step.targets or [])
+        if self.debug:
+            print(
+                f"   🧩 by_segment_tables: step={step.key} scope={base_scope} idx={base_idx} "
+                f"text_len={len(text)} patterns={len(patterns)} "
+                f"max_table_chars={max_table_chars} min_table_rows={min_table_rows} max_hits_per_pattern={max_hits_per_pattern or '∞'}"
+            )
+
+        if not patterns:
+            if self.debug:
+                print("   ⚠️ by_segment_tables: no valid patterns -> return []")
+            return []
+
+        out: List[ReportSection] = []
+        seen = set()
+
+        # 统计：帮助你判断到底卡在哪个环节
+        stat_blocks = 0
+        stat_raw_nonempty = 0
+        stat_title_like = 0
+        stat_grabbed = 0
+        stat_table_pass = 0
+        stat_table_fail = 0
+        stat_dedup_skip = 0
+        stat_truncated = 0
+
+        for pi, pat in enumerate(patterns):
+            if self.debug:
+                print(f"   🔍 pattern[{pi}]={pat.pattern!r}")
+
+            blocks = find_blocks_by_pattern(text, pat)
+
+            if self.debug:
+                print(f"      📦 blocks_found={len(blocks)}")
+
+            if not blocks:
+                # 关键诊断：pattern 是否至少能在 text 里匹配到？
+                # 这不改变逻辑，只告诉你是“pattern没命中”还是“命中但 find_blocks 不产块”
+                m = None
+                try:
+                    m = pat.search(text)
+                except Exception as e:
+                    if self.debug:
+                        print(f"      ❌ pat.search error: {e}")
+
+                if self.debug:
+                    if m:
+                        ls = text.rfind("\n", 0, m.start()) + 1
+                        le = text.find("\n", m.start())
+                        if le == -1:
+                            le = len(text)
+                        line = text[ls:le]
+                        print(f"      ⚠️ regex_match_yes_but_blocks_0 pos={m.start()} line={line[:160]!r}")
+                    else:
+                        print("      ⚠️ regex_match_no (pattern not found in text)")
+                continue
+
+            stat_blocks += len(blocks)
+
+            if max_hits_per_pattern and len(blocks) > max_hits_per_pattern:
+                if self.debug:
+                    print(f"      ✂️ cap blocks {len(blocks)} -> {max_hits_per_pattern}")
+                blocks = blocks[:max_hits_per_pattern]
+
+            for i, b in enumerate(blocks):
+                title = b.get("title") or b.get("kind", "snippet")
+                raw = (b.get("text") or "").strip()
+                kind = b.get("kind")
+
+                if self.debug:
+                    print(f"      ➤ block[{i}] kind={kind!r} title={str(title)[:60]!r} raw_len={len(raw)}")
+
+                if not raw:
+                    if self.debug:
+                        print("         ⛔ skip: raw empty")
+                    continue
+
+                stat_raw_nonempty += 1
+                expanded = raw
+                did_expand = False
+
+                # 1) 如果只是标题段：尝试向下抓表
+                is_title_like = (len(raw) <= 40 and ("表" in raw))
+                if is_title_like:
+                    stat_title_like += 1
+                    if self.debug:
+                        print(f"         🧷 title_like=yes raw={raw[:80]!r}")
+
+                    grabbed = self._grab_table_after_heading(
+                        text,
+                        raw,
+                        max_chars=min(max_table_chars, 8000),
+                    )
+                    if grabbed:
+                        expanded = grabbed
+                        did_expand = True
+                        stat_grabbed += 1
+                        if self.debug:
+                            print(f"         ✅ grabbed_table len={len(grabbed)} preview={self._preview(grabbed)}")
+                    else:
+                        if self.debug:
+                            print("         ⚠️ grabbed_table=empty")
+
+                # 2) 过滤：必须像表
+                ok = self._looks_like_md_table(expanded, min_rows=min_table_rows)
+                if not ok:
+                    stat_table_fail += 1
+                    if self.debug:
+                        lines = [ln.strip() for ln in expanded.splitlines() if ln.strip()]
+                        pipe_lines = sum(1 for ln in lines if ln.startswith("|"))
+                        has_sep = ("|---" in expanded) or ("| ---" in expanded)
+                        print(
+                            f"         ⛔ looks_like_table=NO pipe_lines={pipe_lines} has_sep={has_sep} "
+                            f"expanded_len={len(expanded)} preview={self._preview(expanded)}"
+                        )
+                    continue
+
+                stat_table_pass += 1
+                if self.debug:
+                    print(f"         ✅ looks_like_table=YES expanded={did_expand} expanded_len={len(expanded)}")
+
+                # 3) 截断
+                truncated = False
+                if max_table_chars and len(expanded) > max_table_chars:
+                    expanded = expanded[:max_table_chars]
+                    truncated = True
+                    stat_truncated += 1
+                    if self.debug:
+                        print(f"         ✂️ truncated to {max_table_chars}")
+
+                # 4) 去重
+                sig = (expanded[:200], pat.pattern, base_scope, base_idx)
+                if sig in seen:
+                    stat_dedup_skip += 1
+                    if self.debug:
+                        print("         🧹 dedup_skip")
+                    continue
+                seen.add(sig)
+
+                out.append(
+                    ReportSection(
+                        key=step.key,
+                        title=str(title),
+                        text=expanded,
+                        metadata={
+                            "mode": step.mode,
+                            "pattern": pat.pattern,
+                            "kind": b.get("kind"),
+                            "match_index": i,
+                            "base_scope": base_scope,
+                            "base_idx": base_idx,
+                            "ruleset": self.ruleset.name,
+                            "expanded": expanded != raw,
+                            "truncated": truncated,
+                            "max_table_chars": max_table_chars,
+                            "min_table_rows": min_table_rows,
+                        },
+                    )
+                )
+
+        if self.debug:
+            print(
+                "   📊 by_segment_tables summary: "
+                f"blocks={stat_blocks} raw_nonempty={stat_raw_nonempty} "
+                f"title_like={stat_title_like} grabbed={stat_grabbed} "
+                f"table_pass={stat_table_pass} table_fail={stat_table_fail} "
+                f"dedup_skip={stat_dedup_skip} truncated={stat_truncated} out={len(out)}"
+            )
+
+        return out
+        
+    
     def _dedup_sections(self, sections: List[ReportSection]) -> List[ReportSection]:
         seen = set()
         out: List[ReportSection] = []

@@ -31,7 +31,7 @@ ruleset_house = SliceRuleSet(
                 "include_end": False,
                 "fallback_end_chars": 12000,  # 找不到 end 就截到 start+12000，防爆
                 "merge": True,
-                "max_chars": 1000,            # 覆盖 defaults 也可以不写（这里写清楚）
+                "max_chars": 0,            # 覆盖 defaults 也可以不写（这里写清楚）
             },
             missing="empty",
         ),
@@ -54,10 +54,23 @@ ruleset_house = SliceRuleSet(
                 "include_end": False,
                 "fallback_end_chars": 6000,  # 摘要一般不长
                 "merge": True,
-                "max_chars": 2500,       # 摘要上限：建议稍大于 defaults               
+                "max_chars": 0,       # 摘要上限：建议稍大于 defaults               
                     },
             missing="empty",
         ),
+        SliceStep(
+            key="result_tables",
+            mode="by_segment_tables",
+            within="summary",
+            targets=[
+                r"估价结果一览表",     
+                r"估价结果汇总表"           
+            ],
+            params={
+                "max_table_chars": 12000,
+                "min_table_rows": 3,
+            }
+            )
     ],    
 )
 
@@ -138,7 +151,7 @@ ruleset_asset = SliceRuleSet(
             },
             missing="empty",
         ),
-         SliceStep(
+        SliceStep(
             key="summary",
             mode="by_regex_between",
             targets=[

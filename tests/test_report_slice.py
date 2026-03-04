@@ -8,9 +8,15 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from fd_extractai_report.pipeline import ReportPipeline
+
+import fd_extractai_report, inspect
+print("fd_extractai_report from:", fd_extractai_report.__file__)
+from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
+print("RuleEngineSlicer from:", inspect.getfile(RuleEngineSlicer))
+
 
 # ✅ 你已有的 ruleset / slicer
 from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
@@ -48,7 +54,7 @@ def run_slice_sections_batch(
     preview_chars: int = 180,
     print_text_preview: bool = False,
     export_markdown: bool = True,
-export_markdown_head: int = 0,   
+    export_markdown_head: int = 0,   
 ) -> Dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     patterns = patterns or ["*.doc", "*.docx"]
