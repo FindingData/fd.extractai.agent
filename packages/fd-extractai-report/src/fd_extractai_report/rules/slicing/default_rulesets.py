@@ -76,7 +76,7 @@ ruleset_house = SliceRuleSet(
 
 ruleset_land = SliceRuleSet(
     name="land_v1",
-    defaults={"dedup": True, "max_chars": 2000},
+    defaults={"dedup": True, "max_chars": 10000},
     steps=[
         SliceStep(
             key="cover",
@@ -96,7 +96,7 @@ ruleset_land = SliceRuleSet(
                 "include_end": False,
                 "fallback_end_chars": 12000,
                 "merge": True,
-                "max_chars": 2000,
+                "max_chars": 12000,
             },
             missing="empty",
         ),
@@ -116,9 +116,9 @@ ruleset_land = SliceRuleSet(
                 "pick": "earliest",
                 "include_start": True,   # 保留“摘要”标题（方便你后续抽字段）
                 "include_end": False,
-                "fallback_end_chars": 6000,  # 摘要一般不长
+                "fallback_end_chars": 8000,  # 摘要一般不长
                 "merge": True,
-                "max_chars": 2500,       # 摘要上限：建议稍大于 defaults              
+                "max_chars": 12000,       # 摘要上限：建议稍大于 defaults              
             },
             missing="empty",
         ),

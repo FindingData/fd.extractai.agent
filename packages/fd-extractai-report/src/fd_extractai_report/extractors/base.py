@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import langextract as lx
 from langextract.core import data
-
+from langextract.providers.openai import OpenAILanguageModel
 from fd_extractai_report.context import ReportContext
 from config import CONFIG
 from fd_extractai_report.rules.extracting.schema import ExtractorSpec  # ✅ 只引用 spec（不再有 ExampleSpec）
@@ -29,6 +29,7 @@ class Extractor:
         *,
         model_id: Optional[str] = None,
         model_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         max_char_buffer: int = 8192,
         num_ctx: int = 18000,
         timeout: int = 10 * 60,
@@ -37,6 +38,7 @@ class Extractor:
     ) -> None:
         self.model_id = model_id or CONFIG.LOCAL_MODEL_NAME
         self.model_url = model_url or CONFIG.LOCAL_MODEL_URL
+        self.api_key = api_key or ''
         self.max_char_buffer = max_char_buffer
         self.num_ctx = num_ctx
         self.timeout = timeout
@@ -71,14 +73,24 @@ class Extractor:
 
     def run_langextract(self, text: str, *, context: ReportContext):
         prompt = self.load_prompt()
+        language_model = OpenAILanguageModel(
+                base_url = self.model_url,   # 这里放 https://dashscope.aliyuncs.com/compatible-mode/v1
+                 api_key =  self.api_key,  # 你的 dashscope key（别硬编码）
+                 model_id= self.model_id    # qwen-plus
+                # 其他你想传的也可以放这里（timeout 等）
+        )
         return lx.extract(
             text,
             prompt_description=prompt,
             examples=list(self.examples) if self.examples else [],
-            model_id=self.model_id,
-            model_url=self.model_url,
-            max_char_buffer=self.max_char_buffer,
-            language_model_params={"num_ctx": self.num_ctx, "timeout": self.timeout},
+            # ✅ 关键：强制使用 OpenAI provider（DashScope compatible）
+            language_model_type=OpenAILanguageModel,
+            model = language_model,
+            # max_char_buffer=self.max_char_buffer,
+            # language_model_params={
+            #     "num_ctx": self.num_ctx,
+            # }
+            # num_ctx 这种是否被 OpenAI provider支持要看实现；不支持就别传或放到别处
         )
 
     # get_input_text / _truncate / post_process 你原来的保持不动即可

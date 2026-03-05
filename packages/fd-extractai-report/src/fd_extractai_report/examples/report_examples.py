@@ -21,8 +21,7 @@ house_example_price = data.ExampleData(
             attributes={
                 # ✅ 统一口径：总价用“元”
                 "total_price": 1120400,          # 112.04 万元 => 1,120,400 元
-                "unit_price": 7554,              # 元/㎡
-                "unit": "万元",
+                "unit_price": 7554,              # 元/㎡                
                 "raw_text": "市场价值单价为7554元/平方米，总价为112.04万元；抵押价值单价为7554元/平方米，总价为112.04万元",
                 "report_type": "house",
                 "confidence": "high",

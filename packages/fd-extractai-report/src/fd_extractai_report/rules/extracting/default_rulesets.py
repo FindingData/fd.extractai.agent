@@ -41,7 +41,7 @@ ruleset_house = ExtractRuleSet(
             examples={
                 "house": EXAMPLES_BY_TYPE["house"]["result"],
             },
-            output_key="pricing",
+            output_key="result",
         ),
     ],
 )

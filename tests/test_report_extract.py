@@ -8,7 +8,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from fd_extractai_report import ReportPipeline 
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from config import CONFIG
+from fd_extractai_report import ReportPipeline
 
 from fd_extractai_report.pipeline import ReportPipeline
 
@@ -21,7 +23,9 @@ from fd_extractai_report.rules.slicing.default_rulesets import (
 )
 
 # ✅ extractor runner（按你项目实际路径）
-from fd_extractai_report.extractors.rule_engine_extractor import RuleEngineExtractorRunner
+from fd_extractai_report.extractors.rule_engine_extractor import (
+    RuleEngineExtractorRunner,
+)
 
 
 # -----------------------------
@@ -63,11 +67,17 @@ def _sum_slice_chars(ctx, keys: List[str]) -> Tuple[int, Dict[str, Any]]:
         ss = ctx.get_slices(k) or []
         chars = sum(len((s.text or "")) for s in ss)
         total += chars
-        stats[k] = {"count": len(ss), "chars": chars, "titles": [s.title for s in ss if getattr(s, "title", None)]}
+        stats[k] = {
+            "count": len(ss),
+            "chars": chars,
+            "titles": [s.title for s in ss if getattr(s, "title", None)],
+        }
     return total, stats
 
 
-def dump_sections(sections, out_dir: Path, stem: str, *, write_empty: bool = True) -> None:
+def dump_sections(
+    sections, out_dir: Path, stem: str, *, write_empty: bool = True
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for sec in sorted(sections, key=lambda s: (getattr(s, "key", "") or "")):
         key = _safe_key(getattr(sec, "key", "") or "unknown")
@@ -88,7 +98,9 @@ def _price_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "ok": True,
         "total_price": total_price,
         "unit_price": row.get("unit_price"),
-        "items_count": len(row.get("items") or []) if isinstance(row.get("items"), list) else None,
+        "items_count": len(row.get("items") or [])
+        if isinstance(row.get("items"), list)
+        else None,
         "raw_text": row.get("raw_text"),
         "report_type": row.get("report_type"),
         "confidence": row.get("confidence"),
@@ -120,7 +132,9 @@ def run_extract_batch(
     files: List[Path] = []
     for pat in patterns:
         files.extend(input_dir.glob(pat))
-    files = sorted({p.resolve(): p for p in files}.values(), key=lambda p: p.name.lower())
+    files = sorted(
+        {p.resolve(): p for p in files}.values(), key=lambda p: p.name.lower()
+    )
 
     print(f"📂 Extract 批测试：{input_dir} patterns={patterns} files={len(files)}")
     print(f"📦 输出: {out_dir}")
@@ -129,7 +143,12 @@ def run_extract_batch(
     t0 = time.time()
 
     # ✅ extractor runner（按 default_rulesets 自动选 ruleset）
-    runner = RuleEngineExtractorRunner(debug=debug_extract)
+    runner = RuleEngineExtractorRunner(
+        debug=debug_extract,
+        model_id=CONFIG.QWEN_MODEL_NAME,
+        model_url=CONFIG.QWEN_MODEL_URL,
+        api_key=CONFIG.QWEN_KEY,
+    )
 
     for i, f in enumerate(files, 1):
         print("\n" + "-" * 70)
@@ -143,7 +162,9 @@ def run_extract_batch(
             # 2) detect report_type
             rt = None
             try:
-                rt = pipe.step_detect_report_type(ctx, debug=debug_detect, head_chars=head_chars)
+                rt = pipe.step_detect_report_type(
+                    ctx, debug=debug_detect, head_chars=head_chars
+                )
             except Exception as e:
                 print(f"⚠️ detect failed (ignore): {e}")
             rt = rt or (ctx.metadata or {}).get("report_type") or "house"
@@ -169,8 +190,8 @@ def run_extract_batch(
             print(f"🧩 sections={len(sections)}")
             for j, s in enumerate(sections[:8], 1):
                 print(
-                    f"  - [{j}] key={getattr(s,'key',None)} title={getattr(s,'title',None)} "
-                    f"len={len(getattr(s,'text', '') or '')} preview={_preview(getattr(s,'text','') or '', 140)}"
+                    f"  - [{j}] key={getattr(s, 'key', None)} title={getattr(s, 'title', None)} "
+                    f"len={len(getattr(s, 'text', '') or '')} preview={_preview(getattr(s, 'text', '') or '', 140)}"
                 )
 
             # 4) 导出 markdown（便于排查）
@@ -199,9 +220,13 @@ def run_extract_batch(
                 print("🔎 extract input slice stats (for troubleshooting):")
                 for k, st in slice_stats.items():
                     if st["count"] or st["chars"]:
-                        print(f"  ✅ key={k:<16} count={st['count']:<2} chars={st['chars']}")
+                        print(
+                            f"  ✅ key={k:<16} count={st['count']:<2} chars={st['chars']}"
+                        )
                 if total_chars == 0:
-                    print("  ⚠️ no matched slices in the above keys (will fallback to full if policy=full).")
+                    print(
+                        "  ⚠️ no matched slices in the above keys (will fallback to full if policy=full)."
+                    )
 
             results = runner.run(ctx)
 
@@ -210,14 +235,27 @@ def run_extract_batch(
             _write_json(res_out, results)
             print(f"✅ wrote extract: {res_out.name}")
 
-            # 8) 重点：单独落盘 pricing + 打印摘要
-            pricing = results.get("pricing") or results.get("price") or []
-            pricing_out = file_out_dir / f"{f.stem}.pricing.json"
-            _write_json(pricing_out, pricing)
+            # 8) 每个 extractor 单独保存
+            extract_dir = file_out_dir / "_extract"
+            extract_dir.mkdir(parents=True, exist_ok=True)
 
-            summ = _price_summary(pricing)
-            print("💰 pricing summary:")
-            print(json.dumps(summ, ensure_ascii=False, indent=2))
+            extract_files = {}
+
+            for slug, rows in (results or {}).items():
+                safe_slug = _safe_key(slug)
+                out_file = extract_dir / f"{safe_slug}.json"
+
+                _write_json(out_file, rows)
+
+                extract_files[slug] = str(out_file)
+
+                print(f"📦 wrote extractor: {slug} -> {out_file.name} rows={len(rows)}")
+
+                # 如果是 price，额外打印摘要（保留你的调试功能）
+                if slug in ("pricing", "price"):
+                    summ = _price_summary(rows)
+                    print("💰 pricing summary:")
+                    print(json.dumps(summ, ensure_ascii=False, indent=2))
 
             # 9) sections 全量 json（可选：和你 slice 批测试一致）
             sec_out = file_out_dir / f"{f.stem}.sections.json"
@@ -246,9 +284,8 @@ def run_extract_batch(
                     "slice_ruleset": slice_ruleset.name,
                     "sections": len(sections),
                     "extract_out": str(res_out),
-                    "pricing_out": str(pricing_out),
+                    "extractors": extract_files,
                     "ok": True,
-                    "total_price": summ.get("total_price"),
                 }
             )
 
