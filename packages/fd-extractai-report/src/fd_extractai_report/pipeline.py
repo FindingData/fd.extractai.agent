@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Literal
 
 from fd_extractai_report.context import ReportContext, ReportSection
-from app.utils.report_utils import detect_report_type_from_md_head
-from app.utils.text_utils import convert_word_to_md
+from fd_extractai_report.detectors import ReportTypeDetector, BaseDetector
+from fd_extractai_report.converters import convert_word_to_md
 
 # ⚠️ 注意：不要在这里 import 旧 slicer/extractor。
 # 你现在的主线是 ruleset + RuleEngineSlicer / RuleEngineExtractorRunner。
@@ -141,12 +141,14 @@ class ReportPipeline:
         self,
         *,
         converter: Optional[MarkdownFileConverter] = None,
+         type_detector: Optional[BaseDetector] = None,
         slicers: Optional[Sequence[Any]] = None,
         extractors: Optional[Sequence[Any]] = None,
         evaluator: Optional[BenchmarkEvaluator] = None,
         validators: Optional[Sequence[BaseValidator]] = None,
     ) -> None:
         self.converter = converter or MarkdownFileConverter()
+        self.type_detector = type_detector or ReportTypeDetector()
         self.evaluator = evaluator or BenchmarkEvaluator()
         self.validators = list(validators) if validators is not None else []
 
@@ -218,15 +220,18 @@ class ReportPipeline:
         debug: bool = False,
     ) -> str:
         md = context.ensure_markdown() or ""
-        rt, info = detect_report_type_from_md_head(md, head_chars=head_chars)
-        context.set_metadata(report_type=rt, report_type_debug=info)
+        res = self.type_detector.detect(md, head_chars=head_chars)        
+        rt = res.report_type        
+        info = res.info or {}
+        context.set_metadata(report_type=rt, report_type_debug=info, report_type_confidence=res.confidence)
 
         if debug:
             mode = (info or {}).get("mode")
+            reason = (info or {}).get("reason")
             if mode == "strong":
-                print(f"🧠 detect report_type={rt} mode=strong hit={info.get('strong_text')} reason={info.get('reason')}")
+                print(f"🧠 detect report_type={rt} mode=strong hit={info.get('strong_text')} reason={reason}")
             else:
-                print(f"🧠 detect report_type={rt} scores={info.get('scores')} reason={info.get('reason')}")
+                print(f"🧠 detect report_type={rt} mode={mode} scores={info.get('scores')} reason={reason} conf={res.confidence}")
         return rt
 
     # -------------------------
