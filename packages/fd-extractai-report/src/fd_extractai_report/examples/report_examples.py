@@ -31,6 +31,37 @@ house_example_price = data.ExampleData(
     ],
 )
 
+
+house_example_result = data.ExampleData(
+    text="""
+| 估价对象 | 权证号 | 权利人 | 坐落 | 用途 | 所在层/总层数 | 建筑面积（m2） | 单价（元/m2) | 总价（元） |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 洪房权证黔城镇字第711000391号 | 肖春梅 | 洪江市黔城镇玉壶路交通局隔壁01、02等2套 | 商业 | 1/6 | 61.99 | 3535 | 219135 |
+| 2 | 洪房权证黔城镇字第711000390号 | 肖春梅 | 洪江市黔城镇玉壶路交通局隔壁03、04等2套 | 商业 | 1/6 | 61.99 | 3535 | 219135 |
+| 3 | 洪房权证黔城字第715001640号 | 肖春梅 | 洪江市黔城镇玉壶路（交通局隔壁） | 商业 | 1/6 | 77.04 | 3535 | 272336 |
+| 4 | 洪房权证黔字第2009-0878号 | 徐文相 | 洪江市黔城镇玉壶路（交通局隔壁）111、112 | 商业 | 1/6 | 77.04 | 3535 | 272336 |
+
+""",
+    extractions=[
+       # 仅定义第一条记录的结构
+        data.Extraction(
+            "result_item", 
+            "洪房权证黔城镇字第711000391号", # 锚点：权证号
+            attributes={ 
+                "certificate_number": "洪房权证黔城镇字第711000391号",
+                "owner_name": "肖春梅",
+                "building_area": 61.99,
+                "usage": "商业",
+                "total_price": 219135,
+                "location": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",          # 可选
+                "floor_info": "1/6",        # 可选
+                "unit_price": 3535          # 可选
+            }
+        )
+    ]
+)  
+
+
 house_example_purpose = data.ExampleData(
     text="""
 估价目的与用途
@@ -443,6 +474,7 @@ asset_example_targets = data.ExampleData(
 EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
     "house": {
         "price":[house_example_price],
+        "result":[house_example_result],
         "purpose": [house_example_purpose],
         "assumptions": [house_example_assumption],
         "method": [house_example_method],

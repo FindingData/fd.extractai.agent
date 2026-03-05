@@ -22,8 +22,6 @@ src/fd_extractai_report/rules/slicing/default_rulesets_base.py
 src/fd_extractai_report/rules/slicing/loader.py
 src/fd_extractai_report/rules/slicing/registry.py
 src/fd_extractai_report/rules/slicing/schema.py
-src/fd_extractai_report/sections/LetterToClientRegexSlicer.py
 src/fd_extractai_report/sections/base.py
 src/fd_extractai_report/sections/letter_to_client.py
 src/fd_extractai_report/sections/rule_engine_slicer.py
-src/fd_extractai_report/sections/valuation_tables.py

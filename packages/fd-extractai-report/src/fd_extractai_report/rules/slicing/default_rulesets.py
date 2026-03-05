@@ -59,7 +59,7 @@ ruleset_house = SliceRuleSet(
             missing="empty",
         ),
         SliceStep(
-            key="result_tables",
+            key="result",
             mode="by_segment_tables",
             within="summary",
             targets=[

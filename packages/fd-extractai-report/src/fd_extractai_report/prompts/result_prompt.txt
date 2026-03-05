@@ -1,0 +1,40 @@
+ 从评估报告的 Markdown 表格中抽取“估价对象清单”结构化数据（基于 LangExtract）。
+    适用场景：
+    - md_text 中包含类似“估价对象/权证号/权利人/坐落/用途/面积/总价”等字段的 Markdown 表格；
+    - 需要将表格的每一行转换为一条结构化记录，用于后续入库、校验或生成 Excel。
+
+    抽取规则要点：
+    - 表格 **每一行** 对应一个独立的 `valuation_target_item`（LangExtract extraction_name）；
+    - 使用表格中的 **“权证号”** 作为抽取锚点（extraction_text），提高行级抽取稳定性；
+    - 每条记录的 attributes 至少包含：
+      `certificate_number`, `owner_name`, `building_area`, `usage`, `total_price`
+      （可根据需要扩展其它字段，如坐落、单价、所在层等）。
+    - 
+    Args:
+        md_text (str): 已转换为 Markdown 的报告文本（通常为表格片段或包含表格的正文）。
+
+    Returns:
+        List[Dict[str, Any]]: 抽取结果列表。每个元素为一条估价对象记录的 attributes 字典。
+        若 md_text 为空或未抽取到有效数据，返回空列表 []。
+
+    Notes:
+        - 本方法内部使用 `quick_extract` 调用 LangExtract，并依赖 CONFIG 中配置的本地模型参数；
+        - 建议在调用前先做“切片/召回”，只传入相关表格段落以降低 token 成本并提升准确率。
+    """
+    EXAMPLES: Sequence[data.ExampleData] = [example_valuation_result,example_valuation_dispersed]
+    prompt = """
+    你是一个专业的房地产估价数据提取助手。请从给定的 Markdown 文本中提取所有估价对象的信息。    
+    ### 提取规则：
+    1. **识别逻辑**：
+       - 优先从“估价结果一览表”或“估价对象基本情况一览表”提取。
+       - 如果“估价结果一览表”中只有面积和价格，请从上文的“致估价委托人函”或“基本情况表”中补全'权证号'和'产权人'。
+    2. **属性定义**：
+       - `certificate_number`: 权证号/不动产权证号。
+       - `owner_name`: 权利人/产权人。
+       - `building_area`: 建筑面积/产权面积，需提取纯数字。
+       - `usage`: 房屋用途/规划用途。
+       - `total_price`: 评估总价（通常取“抵押价值”或“假定未设立法定优先受偿权下的价值”）。
+       3. **多条记录处理**：       
+        - **合并策略**：若多行记录或多个权证号共享同一个“坐落”、“建筑面积”和“总价”，**必须**将其判定为同一个估价对象，合并输出。
+        - **权证号处理**：若同一个对象对应多个权证号，请用“/”或“,”连接后填入 `certificate_number`，不要拆分成多条记录。
+        - **产权人处理**：若有多个产权人，请全部保留并用空格分隔。
