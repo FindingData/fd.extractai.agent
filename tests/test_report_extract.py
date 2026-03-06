@@ -184,7 +184,6 @@ def run_extract_batch(
             ctx.metadata["debug_slice"] = bool(debug_slice)
 
             slicer = RuleEngineSlicer(
-                slice_ruleset,
                 debug=debug_slice,
                 preview_chars=preview_chars,
                 print_text_preview=print_text_preview,

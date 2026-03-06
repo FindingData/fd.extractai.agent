@@ -68,3 +68,5 @@ def validate_ruleset(rs: ExtractRuleSet) -> None:
 
         if not ex.prompt_filename:
             raise ValueError(f"Extractor '{ex.slug}' prompt_filename is required")
+        
+

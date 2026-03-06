@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Literal
 
 from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
-from fd_extractai_report.extractors.rule_engine_extractor import RuleEngineExtractorRunner
+from fd_extractai_report.extractors.rule_engine_extractor import (
+    RuleEngineExtractorRunner,
+)
 from fd_extractai_report.rules.extracting.schema import ExtractRuleSet
 from fd_extractai_report.context import ReportContext, ReportSection
 from fd_extractai_report.detectors import ReportTypeDetector, BaseDetector
@@ -21,6 +23,7 @@ from fd_extractai_report.settings import CONFIG, LLMConfig
 # Result / Debug
 # ============================================================
 
+
 @dataclass
 class PipelineResult:
     context: ReportContext
@@ -33,15 +36,19 @@ class PipelineResult:
 # Benchmark
 # ============================================================
 
+
 class BenchmarkEvaluator:
     def __init__(self, benchmark_dir: Optional[Path] = None) -> None:
-        self.benchmark_dir = benchmark_dir or Path(__file__).resolve().parents[1] / "benchmarks"
+        self.benchmark_dir = (
+            benchmark_dir or Path(__file__).resolve().parents[1] / "benchmarks"
+        )
         self.benchmarks = self._load_benchmarks()
 
     def _load_benchmarks(self) -> List[dict]:
         benches: List[dict] = []
         if not self.benchmark_dir.exists():
             return benches
+
         for path in sorted(self.benchmark_dir.glob("benchmark_*.json")):
             try:
                 benches.append(json.loads(path.read_text(encoding="utf-8")))
@@ -49,35 +56,31 @@ class BenchmarkEvaluator:
                 continue
         return benches
 
-    def evaluate(self, extractors: Sequence) -> List[dict]:
-        if not self.benchmarks:
+    def evaluate_runner(
+        self,
+        runner: Any,
+        *,
+        override: Optional[ExtractRuleSet] = None,
+    ) -> List[dict]:
+        if not self.benchmarks or runner is None:
             return []
-        registry = {getattr(extractor, "slug", ""): extractor for extractor in extractors}
+
         results: List[dict] = []
 
         for bench in self.benchmarks:
             slug = bench.get("extractor_slug")
-            extractor = registry.get(slug)
-            if not extractor:
-                continue
+            input_md = bench.get("input_md", "") or ""
+            expected = bench.get("expected", []) or []
+            report_type = bench.get("report_type")
 
             ctx = ReportContext()
-            ctx.set_markdown(bench["input_md"])
+            ctx.set_markdown(input_md)
 
-            # benchmark：直接塞 slice，避免 slicer 干扰
-            target_key = getattr(extractor, "target_slice_key", "__full__")
-            if target_key != "__full__":
-                ctx.add_slice(
-                    ReportSection(
-                        key=target_key,
-                        title=f"{bench.get('name','')}#{slug}",
-                        text=bench["input_md"],
-                        metadata={"benchmark": True},
-                    )
-                )
+            if report_type:
+                ctx.set_metadata(report_type=report_type)
 
-            actual = extractor(ctx) or []
-            expected = bench.get("expected", []) or []
+            outputs = runner.run(ctx, override=override) or {}
+            actual = outputs.get(slug, []) or []
             matched = self._count_matches(actual, expected)
 
             results.append(
@@ -89,6 +92,7 @@ class BenchmarkEvaluator:
                     "passed": matched == len(expected),
                 }
             )
+
         return results
 
     @staticmethod
@@ -106,6 +110,7 @@ class BenchmarkEvaluator:
 # ============================================================
 # Validators
 # ============================================================
+
 
 class BaseValidator:
     def __call__(self, outputs: Dict[str, List[dict]]) -> List[str]:
@@ -165,7 +170,7 @@ class ReportPipeline:
         if slicers is None and extractor_runner is None:
             self.slicers, self.extractor_runner = self._build_default_components()
 
-    def _log(self, msg: str,debug) -> None:
+    def _log(self, msg: str, debug) -> None:
         if debug:
             print(msg)
 
@@ -177,11 +182,10 @@ class ReportPipeline:
 
             extractor_runner = RuleEngineExtractorRunner(
                 debug=self.default_debug,
-            model_id=self.model_id,
-            base_url=self.base_url,
-            api_key=self.api_key,
+                model_id=self.model_id,
+                base_url=self.base_url,
+                api_key=self.api_key,
             )
-
             return slicers, extractor_runner
         except Exception as e:
             if self.default_debug:
@@ -222,33 +226,35 @@ class ReportPipeline:
         return ctx
 
     def load_bytes(
-            self,
-            file_bytes: bytes,
-            *,
-            filename: Optional[str] = None,
-            context: Optional[ReportContext] = None,
-            debug: bool = False,
-        ) -> ReportContext:
-            """
-            bytes -> markdown -> ReportContext
-            用于 ExtractService / 节点：拿到文件 bytes 后直接交给 pipeline
-            """
-            if context is not None:
-                return context
+        self,
+        file_bytes: bytes,
+        *,
+        filename: Optional[str] = None,
+        context: Optional[ReportContext] = None,
+        debug: bool = False,
+    ) -> ReportContext:
+        """
+        bytes -> markdown -> ReportContext
+        用于 ExtractService / 节点：拿到文件 bytes 后直接交给 pipeline
+        """
+        if context is not None:
+            return context
 
-            if debug:
-                print(f"🚀 [LOAD_BYTES] filename={filename or '-'} size={len(file_bytes) if file_bytes else 0}")
+        if debug:
+            print(
+                f"🚀 [LOAD_BYTES] filename={filename or '-'} size={len(file_bytes) if file_bytes else 0}"
+            )
 
-            start_time = time.time()
+        start_time = time.time()
 
-            ctx = ReportContext(source_path=Path(filename).resolve() if filename else None)
+        ctx = ReportContext(source_path=Path(filename).resolve() if filename else None)
 
-            md_text = self.converter.convert(file_bytes or b"", filename=filename)
-            self._log(f"📄 BYTES->MD done chars={len(md_text)}", debug)
+        md_text = self.converter.convert(file_bytes or b"", filename=filename)
+        self._log(f"📄 BYTES->MD done chars={len(md_text)}", debug)
 
-            ctx.set_markdown(md_text or "")
-            self._log(f"⏱ load_bytes cost={time.time() - start_time:.2f}s", debug)
-            return ctx
+        ctx.set_markdown(md_text or "")
+        self._log(f"⏱ load_bytes cost={time.time() - start_time:.2f}s", debug)
+        return ctx
 
     # -------------------------
     # Detect
@@ -261,18 +267,26 @@ class ReportPipeline:
         debug: bool = False,
     ) -> str:
         md = context.ensure_markdown() or ""
-        res = self.type_detector.detect(md, head_chars=head_chars)        
-        rt = res.report_type        
+        res = self.type_detector.detect(md, head_chars=head_chars)
+        rt = res.report_type
         info = res.info or {}
-        context.set_metadata(report_type=rt, report_type_debug=info, report_type_confidence=res.confidence)
+        context.set_metadata(
+            report_type=rt,
+            report_type_debug=info,
+            report_type_confidence=res.confidence,
+        )
 
         if debug:
             mode = (info or {}).get("mode")
             reason = (info or {}).get("reason")
             if mode == "strong":
-                print(f"🧠 detect report_type={rt} mode=strong hit={info.get('strong_text')} reason={reason}")
+                print(
+                    f"🧠 detect report_type={rt} mode=strong hit={info.get('strong_text')} reason={reason}"
+                )
             else:
-                print(f"🧠 detect report_type={rt} mode={mode} scores={info.get('scores')} reason={reason} conf={res.confidence}")
+                print(
+                    f"🧠 detect report_type={rt} mode={mode} scores={info.get('scores')} reason={reason} conf={res.confidence}"
+                )
         return rt
 
     # -------------------------
@@ -291,30 +305,24 @@ class ReportPipeline:
             self._log(f"🔹 slicer done: {name}", debug)
 
         total_slices = sum(len(v) for v in (context.slices or {}).values())
-        self._log(f"✅ slice done total_slices={total_slices} cost={time.time() - start_time:.2f}s", debug)
+        self._log(
+            f"✅ slice done total_slices={total_slices} cost={time.time() - start_time:.2f}s",
+            debug,
+        )
         return context
 
-    # -------------------------
-    # Extract (旧模式：基于 self.extractors)
-    # 你现在主线是 ruleset runner，这个方法仍保留兼容，不影响 batch 用 pipe.load/detect。
-    # -------------------------
     def step_extract(
         self,
         context: ReportContext,
         *,
-        slice_only: bool = True,
-        empty_if_missing_slice: bool = True,
         debug: bool = False,
-        max_slice_chars: int = 12000,
         override: Optional[ExtractRuleSet] = None,
     ) -> Dict[str, List[dict]]:
         if debug:
-            mode = "slice_only" if slice_only else "full"
-            print(f"🧠 [EXTRACT] start mode={mode}")
+            print("🧠 [EXTRACT] start")
 
         start_time = time.time()
 
-        # 没有 extractors 就直接返回空（批处理时经常这么用）
         if self.extractor_runner is None:
             self._log("⚠️ no extractor_runner configured, skip", debug)
             return {}
@@ -324,55 +332,12 @@ class ReportPipeline:
         self._log(f"⏱ extract cost={time.time() - start_time:.2f}s", debug)
         return outputs
 
-    def _prepare_extractor_inputs(
-        self,
-        context: ReportContext,
-        *,
-        slice_only: bool,
-        empty_if_missing_slice: bool,
-        debug: bool,
-        max_slice_chars: int,
-    ) -> Dict[str, Optional[ReportContext]]:
-        inputs: Dict[str, Optional[ReportContext]] = {}
-
-        for extractor in self.extractors:
-            slug = extractor.slug
-            target_key = getattr(extractor, "target_slice_key", "__full__")
-
-            if not slice_only or target_key == "__full__":
-                inputs[slug] = context
-                continue
-
-            slices = context.get_slices(target_key)
-            if not slices:
-                if debug:
-                    self._log(f"🔍 input {slug}: missing slice {target_key}", debug)
-                inputs[slug] = None if empty_if_missing_slice else context
-                continue
-
-            slice_text = "\n\n".join((s.text or "") for s in slices if s).strip()
-            if not slice_text:
-                inputs[slug] = None
-                continue
-
-            if max_slice_chars and len(slice_text) > max_slice_chars:
-                slice_text = slice_text[:max_slice_chars]
-
-            tmp_ctx = ReportContext(source_path=context.source_path)
-            tmp_ctx.set_markdown(slice_text)
-            if context.metadata:
-                tmp_ctx.set_metadata(**context.metadata)
-            for s in slices:
-                tmp_ctx.add_slice(s)
-
-            inputs[slug] = tmp_ctx
-
-        return inputs
-
     # -------------------------
     # Validate
     # -------------------------
-    def validate(self, outputs: Dict[str, List[dict]], debug: bool = False) -> List[str]:
+    def validate(
+        self, outputs: Dict[str, List[dict]], debug: bool = False
+    ) -> List[str]:
         if debug:
             print("⚖️  [VALIDATE] start ...")
 
@@ -394,8 +359,21 @@ class ReportPipeline:
     # -------------------------
     # Benchmark (补齐)
     # -------------------------
-    def step_benchmark(self) -> List[dict]:
-        return self.evaluator.evaluate(self.extractors)
+    def step_benchmark(
+        self,
+        *,
+        override: Optional[ExtractRuleSet] = None,
+        debug: bool = False,
+    ) -> List[dict]:
+        if self.extractor_runner is None:
+            self._log("⚠️ no extractor_runner configured, skip benchmark", debug)
+            return []
+
+        results = self.evaluator.evaluate_runner(
+            self.extractor_runner, override=override
+        )
+        self._log(f"📏 benchmark done count={len(results)}", debug)
+        return results
 
     # -------------------------
     # Run / Run until
@@ -426,20 +404,24 @@ class ReportPipeline:
 
         evaluations: List[dict] = []
         if want_benchmark:
-            evaluations = self.step_benchmark()
+            evaluations = self.step_benchmark(override=override, debug=debug)
 
         if debug:
             print("-" * 60)
-            print(f"🎉 done cost={time.time() - t0:.2f}s warnings={len(warnings)} eval={len(evaluations)}")
+            print(
+                f"🎉 done cost={time.time() - t0:.2f}s warnings={len(warnings)} eval={len(evaluations)}"
+            )
             print("=" * 60 + "\n")
 
-        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
+        return PipelineResult(
+            context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings
+        )
 
     def run_bytes(
         self,
         file_bytes: bytes,
-        *,
         filename: Optional[str] = None,
+        *,
         want_benchmark: bool = False,
         debug: Optional[bool] = None,
         override: Optional[ExtractRuleSet] = None,
@@ -465,21 +447,24 @@ class ReportPipeline:
 
         if debug:
             print("-" * 60)
-            print(f"🎉 done cost={time.time() - t0:.2f}s warnings={len(warnings)} eval={len(evaluations)}")
+            print(
+                f"🎉 done cost={time.time() - t0:.2f}s warnings={len(warnings)} eval={len(evaluations)}"
+            )
             print("=" * 60 + "\n")
 
-        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
+        return PipelineResult(
+            context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings
+        )
 
-    
     def run_until(
         self,
         *,
         docx_path: Optional[str | Path] = None,
         markdown_text: Optional[str] = None,
         until: RunStage = "all",
-        slice_only: bool = True,
         want_benchmark: bool = False,
         debug: bool = False,
+        override: Optional[ExtractRuleSet] = None,
     ):
         ctx = self.load(docx_path=docx_path, markdown_text=markdown_text, debug=debug)
         if until == "load":
@@ -493,7 +478,7 @@ class ReportPipeline:
         if until == "slice":
             return ctx
 
-        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        outputs = self.step_extract(ctx, debug=debug, override=override)
         if until == "extract":
             return ctx, outputs
 
@@ -503,10 +488,12 @@ class ReportPipeline:
 
         evaluations: List[dict] = []
         if want_benchmark or until in ("benchmark", "all"):
-            evaluations = self.step_benchmark()
+            evaluations = self.step_benchmark(override=override, debug=debug)
 
-        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
-    
+        return PipelineResult(
+            context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings
+        )
+
     def run_until_bytes(
         self,
         file_bytes: bytes,
@@ -541,4 +528,6 @@ class ReportPipeline:
         if want_benchmark or until in ("benchmark", "all"):
             evaluations = self.step_benchmark()
 
-        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
+        return PipelineResult(
+            context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings
+        )

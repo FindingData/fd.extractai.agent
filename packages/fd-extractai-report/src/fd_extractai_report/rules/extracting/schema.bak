@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, Literal
+
+from langextract.core import data
+
+
+ExampleSpec = Union[
+    Sequence[data.ExampleData],
+    Mapping[str, Sequence[data.ExampleData]],  # {"house":[...], "general":[...]}
+]
+
+MissingPolicy = Literal["empty", "full", "raise"]
+
+
+def _is_non_empty_str(v: Any) -> bool:
+    return isinstance(v, str) and bool(v.strip())
+
+
+def _is_non_empty_str_list(v: Any) -> bool:
+    return isinstance(v, list) and all(_is_non_empty_str(x) for x in v)
+
+
+def _validate_examples(examples: ExampleSpec, slug: str) -> List[str]:
+    errors: List[str] = []
+
+    if examples is None:
+        return errors
+
+    # 情况1：直接是一组 ExampleData
+    if isinstance(examples, Sequence) and not isinstance(examples, (str, bytes, dict)):
+        for i, x in enumerate(examples):
+            if not isinstance(x, data.ExampleData):
+                errors.append(
+                    f"Extractor '{slug}' examples[{i}] must be ExampleData, got {type(x).__name__}"
+                )
+        return errors
+
+    # 情况2：按 report_type 分组
+    if isinstance(examples, Mapping):
+        for k, arr in examples.items():
+            if not _is_non_empty_str(k):
+                errors.append(f"Extractor '{slug}' examples key must be non-empty string")
+                continue
+
+            if not isinstance(arr, Sequence) or isinstance(arr, (str, bytes)):
+                errors.append(
+                    f"Extractor '{slug}' examples['{k}'] must be Sequence[ExampleData]"
+                )
+                continue
+
+            for i, x in enumerate(arr):
+                if not isinstance(x, data.ExampleData):
+                    errors.append(
+                        f"Extractor '{slug}' examples['{k}'][{i}] must be ExampleData, got {type(x).__name__}"
+                    )
+        return errors
+
+    errors.append(
+        f"Extractor '{slug}' examples must be Sequence[ExampleData] or Mapping[str, Sequence[ExampleData]]"
+    )
+    return errors
+
+
+@dataclass
+class ExtractorSpec:
+    slug: str
+    prompt_filename: str
+
+    input_slice_keys: List[str] = field(default_factory=lambda: ["__full__"])
+    missing_slice_policy: MissingPolicy = "empty"
+
+    examples: ExampleSpec = field(default_factory=tuple)
+
+    defaults: Dict[str, Any] = field(default_factory=dict)
+    inject_context_fields: List[str] = field(default_factory=list)
+
+    add_titles: bool = True
+    max_input_chars: int = 12000
+
+    output_key: Optional[str] = None
+    enabled: bool = True
+
+
+@dataclass
+class ExtractRuleSet:
+    """
+    一份报告类型对应的一组抽取器定义（pipeline）。
+    """
+    name: str
+    report_type: str
+
+    extractors: List[ExtractorSpec] = field(default_factory=list)
+
+    inject_context_fields: List[str] = field(default_factory=list)
+    max_input_chars: Optional[int] = None
+
+    examples: Sequence[data.ExampleData] = ()
+
+
+def validate_ruleset(rs: ExtractRuleSet) -> None:
+    errors: List[str] = []
+
+    # -------- ruleset-level --------
+    if not _is_non_empty_str(rs.name):
+        errors.append("ExtractRuleSet.name is required")
+
+    if not _is_non_empty_str(rs.report_type):
+        errors.append("ExtractRuleSet.report_type is required")
+
+    if rs.max_input_chars is not None:
+        if not isinstance(rs.max_input_chars, int) or rs.max_input_chars <= 0:
+            errors.append("ExtractRuleSet.max_input_chars must be positive int or None")
+
+    if not isinstance(rs.inject_context_fields, list):
+        errors.append("ExtractRuleSet.inject_context_fields must be list[str]")
+    else:
+        for i, f in enumerate(rs.inject_context_fields):
+            if not _is_non_empty_str(f):
+                errors.append(f"ExtractRuleSet.inject_context_fields[{i}] must be non-empty string")
+
+    # ruleset.examples（如果你以后真要用，可以保留校验）
+    if rs.examples:
+        for i, x in enumerate(rs.examples):
+            if not isinstance(x, data.ExampleData):
+                errors.append(
+                    f"ExtractRuleSet.examples[{i}] must be ExampleData, got {type(x).__name__}"
+                )
+
+    # -------- extractor-level --------
+    seen = set()
+
+    for idx, ex in enumerate(rs.extractors):
+        tag = f"extractors[{idx}]({ex.slug or '?'})"
+
+        if not _is_non_empty_str(ex.slug):
+            errors.append(f"{tag}.slug is required")
+        elif ex.slug in seen:
+            errors.append(f"Duplicate extractor slug: {ex.slug}")
+        else:
+            seen.add(ex.slug)
+
+        if not _is_non_empty_str(ex.prompt_filename):
+            errors.append(f"{tag}.prompt_filename is required")
+
+        if ex.missing_slice_policy not in ("empty", "full", "raise"):
+            errors.append(f"{tag}.missing_slice_policy invalid: {ex.missing_slice_policy}")
+
+        if not isinstance(ex.input_slice_keys, list) or not ex.input_slice_keys:
+            errors.append(f"{tag}.input_slice_keys must be non-empty list[str]")
+        else:
+            for i, k in enumerate(ex.input_slice_keys):
+                if not _is_non_empty_str(k):
+                    errors.append(f"{tag}.input_slice_keys[{i}] must be non-empty string")
+
+        if not isinstance(ex.inject_context_fields, list):
+            errors.append(f"{tag}.inject_context_fields must be list[str]")
+        else:
+            for i, f in enumerate(ex.inject_context_fields):
+                if not _is_non_empty_str(f):
+                    errors.append(f"{tag}.inject_context_fields[{i}] must be non-empty string")
+
+        if not isinstance(ex.max_input_chars, int) or ex.max_input_chars <= 0:
+            errors.append(f"{tag}.max_input_chars must be positive int")
+
+        if ex.output_key is not None and not _is_non_empty_str(ex.output_key):
+            errors.append(f"{tag}.output_key must be non-empty string or None")
+
+        if not isinstance(ex.enabled, bool):
+            errors.append(f"{tag}.enabled must be bool")
+
+        if not isinstance(ex.add_titles, bool):
+            errors.append(f"{tag}.add_titles must be bool")
+
+        if not isinstance(ex.defaults, dict):
+            errors.append(f"{tag}.defaults must be dict")
+
+        errors.extend(_validate_examples(ex.examples, ex.slug or f"#{idx}"))
+
+    if errors:
+        raise ValueError("Extract ruleset validation failed:\n- " + "\n- ".join(errors))

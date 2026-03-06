@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Iterable, List,Pattern, Tuple,Optional
+from typing import Any, Dict, Iterable, List, Pattern, Tuple, Optional
 
 from fd_extractai_report.context import ReportContext, ReportSection
 from fd_extractai_report.sections.base import SectionSlicer
-from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep 
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
+from fd_extractai_report.rules.slicing.registry import get_ruleset
 
 from fd_extractai_report.text.mdkit import (
     bucket_by_targets,
@@ -13,17 +14,17 @@ from fd_extractai_report.text.mdkit import (
     find_blocks_by_pattern,
 )
 
+
 class RuleEngineSlicer(SectionSlicer):
     """
     规则切片执行器（强调调试可观测性）：
     - 每个 step 打印：输入范围、命中数量、去重、merge、truncate
     - 可通过构造参数 debug=True 或 ctx.metadata["debug_slice"]=True 开启
-        """
-
+    """
 
     def __init__(
         self,
-        ruleset: SliceRuleSet,
+        ruleset: Optional[SliceRuleSet] = None,
         *,
         key: str = "rule_engine",
         debug: bool = False,
@@ -40,9 +41,8 @@ class RuleEngineSlicer(SectionSlicer):
         if self.debug or bool((ctx.metadata or {}).get("debug_slice")):
             print(msg)
 
-
     def _compile_patterns(self, patterns: Iterable[str]) -> List[Pattern]:
-                    return [re.compile(p, re.MULTILINE) for p in (patterns or [])]
+        return [re.compile(p, re.MULTILINE) for p in (patterns or [])]
 
     def _get_line_span(self, text: str, pos: int) -> Tuple[int, int]:
         # 返回 pos 所在行的 [line_start, line_end)
@@ -53,7 +53,7 @@ class RuleEngineSlicer(SectionSlicer):
         return line_start, line_end
 
     def _should_skip_match_by_line(
-        self, 
+        self,
         text: str,
         m: re.Match,
         skip_line_res: List[Pattern],
@@ -68,7 +68,7 @@ class RuleEngineSlicer(SectionSlicer):
         return False
 
     def _pick_match(
-        self, 
+        self,
         text: str,
         matches: List[re.Match],
         pick: str,
@@ -96,25 +96,65 @@ class RuleEngineSlicer(SectionSlicer):
             if not self._should_skip_match_by_line(text, m, skip_line_res):
                 return m
         return None
+
     def _preview(self, s: str) -> str:
         s = (s or "").replace("\n", "\\n")
         return s if len(s) <= self.preview_chars else s[: self.preview_chars] + "..."
 
-   
+    def _resolve_ruleset(self, context: ReportContext) -> SliceRuleSet:
+        if self.ruleset is not None:
+            self._dbg(
+                context,
+                f"🧭 [RuleEngine] use preset ruleset={getattr(self.ruleset, 'name', None)!r}",
+            )
+            return self.ruleset
 
-    def slice(self, context: ReportContext) -> Iterable[ReportSection]:
+        rt = (context.metadata or {}).get("report_type") or "house"
+        rs = get_ruleset(rt)
+        self._dbg(
+            context,
+            f"🧭 [RuleEngine] resolve report_type={rt!r} -> ruleset={getattr(rs, 'name', None)!r}",
+        )
+        return rs
+
+    def slice(self, context: ReportContext, *, override: Optional[SliceRuleSet] = None):
+        before = {
+            k: len(v or []) for k, v in (getattr(context, "slices", None) or {}).items()
+        }
+        self._dbg(context, f"🧭 [RuleEngine] enter slices_before={before}")
+
+        active_ruleset = override or self._resolve_ruleset(context)
+        if active_ruleset is None:
+            self._dbg(context, "❌ [RuleEngine] active_ruleset is None")
+            return
+
+        self.ruleset = active_ruleset
         full = context.ensure_markdown()
-        self._dbg(context, f"🧩 [RuleEngine] ruleset={self.ruleset.name} steps={len(self.ruleset.steps)}")
+
+        self._dbg(
+            context,
+            f"🧩 [RuleEngine] ruleset={self.ruleset.name} steps={len(self.ruleset.steps)}",
+        )
 
         for si, step in enumerate(self.ruleset.steps, start=1):
             self._dbg(
                 context,
-                f"➡️  [Step {si}/{len(self.ruleset.steps)}] key={step.key} mode={step.mode} within={step.within or '__full__'} missing={step.missing}",
+                f"➡️  [Step {si}/{len(self.ruleset.steps)}] key={step.key} mode={step.mode} "
+                f"within={step.within or '__full__'} missing={step.missing}",
+            )
+
+            step_before = len((context.slices or {}).get(step.key, []) or [])
+            self._dbg(
+                context,
+                f"   📌 step_before key={step.key!r} existing_count={step_before}",
             )
 
             base_texts = self._resolve_base_texts(context, full, step)
             if not base_texts:
-                self._dbg(context, f"   ⚠️ base_texts=0 -> skip (missing policy={step.missing})")
+                self._dbg(
+                    context,
+                    f"   ⚠️ base_texts=0 -> skip (missing policy={step.missing})",
+                )
                 continue
 
             produced_total = 0
@@ -124,25 +164,59 @@ class RuleEngineSlicer(SectionSlicer):
                     continue
 
                 if self.print_text_preview:
-                    self._dbg(context, f"   📎 base[{bi}] preview: {self._preview(base)}")
+                    self._dbg(
+                        context, f"   📎 base[{bi}] preview: {self._preview(base)}"
+                    )
 
-                secs = list(self._run_step(context, step, base, base_scope=step.within or "__full__", base_idx=bi))
+                secs = list(
+                    self._run_step(
+                        context,
+                        step,
+                        base,
+                        base_scope=step.within or "__full__",
+                        base_idx=bi,
+                    )
+                )
                 produced_total += len(secs)
 
                 for s in secs:
-                    context.add_slice(s)
-                    yield s
-            if self.debug:
-                try:
-                    keys = list((context.slices or {}).keys())
-                except Exception:
-                    keys = []
-                print(f"   🧾 ctx.slices keys now: {keys}")
-                if step.key in (context.slices or {}):
-                    print(f"   🧾 ctx.slices['{step.key}'] count={len(context.slices[step.key])}")
-            self._dbg(context, f"   ✅ produced={produced_total} sections for step={step.key}")
+                    before_cnt = len((context.slices or {}).get(s.key, []) or [])
+                    self._dbg(
+                        context,
+                        f"➕ add_slice BEFORE key={s.key!r} title={s.title!r} "
+                        f"len={len(s.text or '')} count_before={before_cnt}",
+                    )
 
-    def _resolve_base_texts(self, ctx: ReportContext, full: str, step: SliceStep) -> List[str]:
+                    context.add_slice(s)
+
+                    after_cnt = len((context.slices or {}).get(s.key, []) or [])
+                    self._dbg(
+                        context,
+                        f"✅ add_slice AFTER  key={s.key!r} count_after={after_cnt}",
+                    )
+
+                    yield s
+
+            try:
+                keys = list((context.slices or {}).keys())
+            except Exception:
+                keys = []
+
+            step_after = len((context.slices or {}).get(step.key, []) or [])
+            self._dbg(context, f"   🧾 ctx.slices keys now: {keys}")
+            self._dbg(context, f"   🧾 ctx.slices['{step.key}'] count={step_after}")
+            self._dbg(
+                context, f"   ✅ produced={produced_total} sections for step={step.key}"
+            )
+
+        after = {
+            k: len(v or []) for k, v in (getattr(context, "slices", None) or {}).items()
+        }
+        self._dbg(context, f"🏁 [RuleEngine] leave slices_after={after}")
+
+    def _resolve_base_texts(
+        self, ctx: ReportContext, full: str, step: SliceStep
+    ) -> List[str]:
         if not step.within:
             self._dbg(ctx, "   🔎 input_scope=__full__")
             return [full]
@@ -150,16 +224,28 @@ class RuleEngineSlicer(SectionSlicer):
         src = ctx.get_slices(step.within) or []
         if not src:
             if step.missing == "raise":
-                raise KeyError(f"within slice '{step.within}' missing for step '{step.key}'")
+                raise KeyError(
+                    f"within slice '{step.within}' missing for step '{step.key}'"
+                )
             if step.missing == "full":
-                self._dbg(ctx, f"   🔁 within '{step.within}' missing -> fallback to __full__")
+                self._dbg(
+                    ctx, f"   🔁 within '{step.within}' missing -> fallback to __full__"
+                )
                 return [full]
             return []
 
         self._dbg(ctx, f"   🔎 input_scope={step.within} slices={len(src)}")
         return [s.text for s in src if s and s.text]
 
-    def _run_step(self, ctx: ReportContext, step: SliceStep, text: str, *, base_scope: str, base_idx: int) -> Iterable[ReportSection]:
+    def _run_step(
+        self,
+        ctx: ReportContext,
+        step: SliceStep,
+        text: str,
+        *,
+        base_scope: str,
+        base_idx: int,
+    ) -> Iterable[ReportSection]:
         p = {**(self.ruleset.defaults or {}), **(step.params or {})}
 
         merge = bool(p.get("merge", False))
@@ -181,7 +267,7 @@ class RuleEngineSlicer(SectionSlicer):
             produced = self._by_table_after(step, text, p, base_scope, base_idx)
         elif step.mode == "by_window_after":
             produced = self._by_window_after(step, text, p, base_scope, base_idx)
-        elif step.mode == "by_regex_between":                         
+        elif step.mode == "by_regex_between":
             produced = self._by_regex_between(step, text, p, base_scope, base_idx)
         elif step.mode == "by_segment_tables":
             produced = self._by_segment_tables(step, text, p, base_scope, base_idx)
@@ -190,16 +276,24 @@ class RuleEngineSlicer(SectionSlicer):
             return
 
         self._dbg(ctx, f"   📦 raw_produced={len(produced)}")
-        
-        if produced and step.mode == "by_regex_between" and (self.debug or bool((ctx.metadata or {}).get("debug_slice"))):
+
+        if (
+            produced
+            and step.mode == "by_regex_between"
+            and (self.debug or bool((ctx.metadata or {}).get("debug_slice")))
+        ):
             md0 = produced[0].metadata or {}
-            self._dbg(ctx, f"   🎯 between start={md0.get('start')} end={md0.get('end')}")
+            self._dbg(
+                ctx, f"   🎯 between start={md0.get('start')} end={md0.get('end')}"
+            )
         # ✅ 紧跟在 produced 之后加（在 self._dbg 那一层）
         if produced and (self.debug or bool((ctx.metadata or {}).get("debug_slice"))):
             md = produced[0].metadata or {}
             anchor = md.get("anchor")
             hits = md.get("hits") or []
-            pos = hits[0].get("pos") if hits else None  # 注意：hits[0] 不一定就是最终 anchor（earliest 时应该是最小pos，但安全起见下面更严谨）
+            pos = (
+                hits[0].get("pos") if hits else None
+            )  # 注意：hits[0] 不一定就是最终 anchor（earliest 时应该是最小pos，但安全起见下面更严谨）
             # 更严谨：从 hits 里找到最终 anchor 的 pos
             pos2 = None
             if anchor and hits:
@@ -209,9 +303,14 @@ class RuleEngineSlicer(SectionSlicer):
                         break
             ctx_pos = pos2 if pos2 is not None else pos
 
-            self._dbg(ctx, f"   🎯 window_after picked anchor='{anchor}' pos={ctx_pos} hit_count={md.get('hit_count')} window_chars={md.get('window_chars')}")
+            self._dbg(
+                ctx,
+                f"   🎯 window_after picked anchor='{anchor}' pos={ctx_pos} hit_count={md.get('hit_count')} window_chars={md.get('window_chars')}",
+            )
             if self.print_text_preview:
-                self._dbg(ctx, f"   🧾 window preview: {self._preview(produced[0].text)}")
+                self._dbg(
+                    ctx, f"   🧾 window preview: {self._preview(produced[0].text)}"
+                )
 
         if dedup and produced:
             before = len(produced)
@@ -226,7 +325,9 @@ class RuleEngineSlicer(SectionSlicer):
 
         if merge and produced:
             merged = "\n\n".join(s.text for s in produced if s.text).strip()
-            self._dbg(ctx, f"   🧷 merge parts={len(produced)} merged_len={len(merged)}")
+            self._dbg(
+                ctx, f"   🧷 merge parts={len(produced)} merged_len={len(merged)}"
+            )
 
             if not merged:
                 self._dbg(ctx, "   ⚠️ merged empty -> skip")
@@ -257,12 +358,18 @@ class RuleEngineSlicer(SectionSlicer):
         if max_chars:
             for s in produced:
                 if s.text and len(s.text) > max_chars:
-                    self._dbg(ctx, f"   ✂️ section truncated key={s.key} title={s.title}")
+                    self._dbg(
+                        ctx, f"   ✂️ section truncated key={s.key} title={s.title}"
+                    )
                     yield ReportSection(
                         key=s.key,
                         title=s.title,
                         text=s.text[:max_chars],
-                        metadata={**(s.metadata or {}), "truncated": True, "max_chars": max_chars},
+                        metadata={
+                            **(s.metadata or {}),
+                            "truncated": True,
+                            "max_chars": max_chars,
+                        },
                     )
                 else:
                     yield s
@@ -271,7 +378,9 @@ class RuleEngineSlicer(SectionSlicer):
         for s in produced:
             yield s
 
-    def _by_heading(self, step: SliceStep, text: str, base_scope: str, base_idx: int) -> List[ReportSection]:
+    def _by_heading(
+        self, step: SliceStep, text: str, base_scope: str, base_idx: int
+    ) -> List[ReportSection]:
         sections = sectionize(text)
         grouped = bucket_by_targets(sections, {step.key: step.targets})
         raws = grouped.get(step.key) or []
@@ -299,7 +408,9 @@ class RuleEngineSlicer(SectionSlicer):
             )
         return out
 
-    def _by_regex_block(self, step: SliceStep, text: str, base_scope: str, base_idx: int) -> List[ReportSection]:
+    def _by_regex_block(
+        self, step: SliceStep, text: str, base_scope: str, base_idx: int
+    ) -> List[ReportSection]:
         out: List[ReportSection] = []
         patterns = [re.compile(t, re.I) for t in (step.targets or [])]
         for pat in patterns:
@@ -339,7 +450,11 @@ class RuleEngineSlicer(SectionSlicer):
         include_end = bool(p.get("include_end", False))
         fallback_end_chars = int(p.get("fallback_end_chars") or 0)
         # ✅ 方案3：按“命中所在行”过滤（目录链接行等）
-        skip_line_patterns = [s for s in (p.get("skip_if_line_matches") or []) if isinstance(s, str) and s.strip()]
+        skip_line_patterns = [
+            s
+            for s in (p.get("skip_if_line_matches") or [])
+            if isinstance(s, str) and s.strip()
+        ]
         if self.debug:
             print(f"   🧷 skip_if_line_matches={skip_line_patterns!r}")
         starts = [t for t in (step.targets or []) if isinstance(t, str) and t.strip()]
@@ -402,7 +517,13 @@ class RuleEngineSlicer(SectionSlicer):
             return False
 
         # 统一：收集某一组 patterns 的全部候选命中（可限制搜索起点）
-        def _collect_hits(pats: List[re.Pattern], _text: str, start_at: int = 0, *, kind: str = "start") -> Tuple[List[Dict[str, Any]], int]:
+        def _collect_hits(
+            pats: List[re.Pattern],
+            _text: str,
+            start_at: int = 0,
+            *,
+            kind: str = "start",
+        ) -> Tuple[List[Dict[str, Any]], int]:
             """
             返回 (hits, skipped_count)
             hit 结构保持你原来的字段，但额外加 line 方便调试
@@ -425,17 +546,31 @@ class RuleEngineSlicer(SectionSlicer):
                         # 构造一个“类 match”信息
                         # 这里不强造 match 对象了，直接走命中判断用 line
                         line = _line_text(_text, fake_start)
-                        if skip_line_res and any(rx.search(line) for rx in skip_line_res):
+                        if skip_line_res and any(
+                            rx.search(line) for rx in skip_line_res
+                        ):
                             skipped += 1
                             continue
-                        hits.append({"idx": i, "pat": pat.pattern, "pos": fake_start, "end": fake_end, "match": m.group(0), "line": line, "kind": kind})
+                        hits.append(
+                            {
+                                "idx": i,
+                                "pat": pat.pattern,
+                                "pos": fake_start,
+                                "end": fake_end,
+                                "match": m.group(0),
+                                "line": line,
+                                "kind": kind,
+                            }
+                        )
                     continue
 
                 for m in it:
                     if _should_skip_by_line(_text, m):
                         skipped += 1
                         if self.debug:
-                            print(f"   ⛔ skip({kind}) pos={m.start()} line={_line_text(_text, m.start())[:120]!r}")
+                            print(
+                                f"   ⛔ skip({kind}) pos={m.start()} line={_line_text(_text, m.start())[:120]!r}"
+                            )
                         continue
                     hits.append(
                         {
@@ -475,7 +610,11 @@ class RuleEngineSlicer(SectionSlicer):
         end_hits, end_skipped = _collect_hits(end_pats, text, start_pos, kind="end")
 
         if end_hits:
-            end_hit = _pick_hit(end_hits) if pick == "priority" else min(end_hits, key=lambda h: h["pos"])
+            end_hit = (
+                _pick_hit(end_hits)
+                if pick == "priority"
+                else min(end_hits, key=lambda h: h["pos"])
+            )
             # end 的 priority 通常也可以用 idx 优先，但为了与你原逻辑一致，上面写得更保守：
             # - 如果 pick == priority：_pick_hit 会按 idx/pos
             # - 如果 pick != priority：按 pos 最早
@@ -525,7 +664,7 @@ class RuleEngineSlicer(SectionSlicer):
                 },
             )
         ]
-    
+
     def _looks_like_md_table(self, s: str, *, min_rows: int = 3) -> bool:
         if not s:
             return False
@@ -535,7 +674,9 @@ class RuleEngineSlicer(SectionSlicer):
         pipe_lines = sum(1 for ln in lines if ln.startswith("|"))
         return pipe_lines >= min_rows
 
-    def _grab_table_after_heading(self, text: str, heading: str, *, max_chars: int = 8000) -> str:
+    def _grab_table_after_heading(
+        self, text: str, heading: str, *, max_chars: int = 8000
+    ) -> str:
         pos = text.find(heading)
         if pos < 0:
             return ""
@@ -576,13 +717,22 @@ class RuleEngineSlicer(SectionSlicer):
         # 可选：只返回从表格开始那一行起（不要标题），看你需求
         return "\n".join(out[started_at:]).strip()
 
-    def _by_table_after(self, step: SliceStep, text: str, p: Dict[str, Any], base_scope: str, base_idx: int) -> List[ReportSection]:
+    def _by_table_after(
+        self,
+        step: SliceStep,
+        text: str,
+        p: Dict[str, Any],
+        base_scope: str,
+        base_idx: int,
+    ) -> List[ReportSection]:
         max_table_chars = int(p.get("max_table_chars") or 12000)
         min_table_rows = int(p.get("min_table_rows") or 3)
 
         out: List[ReportSection] = []
         for i, heading in enumerate(step.targets):
-            grabbed = self._grab_table_after_heading(text, heading, max_chars=max_table_chars)
+            grabbed = self._grab_table_after_heading(
+                text, heading, max_chars=max_table_chars
+            )
             if not grabbed:
                 continue
             if not self._looks_like_md_table(grabbed, min_rows=min_table_rows):
@@ -617,7 +767,7 @@ class RuleEngineSlicer(SectionSlicer):
         base_idx: int,
     ) -> List[ReportSection]:
         window_chars = int(p.get("window_chars") or 12000)
-        pick = (p.get("anchor_pick") or "earliest").lower()   # "earliest" | "priority"
+        pick = (p.get("anchor_pick") or "earliest").lower()  # "earliest" | "priority"
         use_regex = bool(p.get("anchor_regex", False))
 
         targets = [t for t in (step.targets or []) if isinstance(t, str) and t.strip()]
@@ -650,7 +800,7 @@ class RuleEngineSlicer(SectionSlicer):
         else:
             # 默认：选最早出现的
             pos, anchor, extra = min(hits, key=lambda x: x[0])
-        
+
         end = min(len(text), pos + window_chars)
         win = text[pos:end]
 
@@ -669,7 +819,9 @@ class RuleEngineSlicer(SectionSlicer):
                     "base_idx": base_idx,
                     "ruleset": self.ruleset.name,
                     "hit_count": len(hits),
-                    "hits": [{"pos": h[0], "anchor": h[1], **h[2]} for h in hits[:20]],  # 防止过大
+                    "hits": [
+                        {"pos": h[0], "anchor": h[1], **h[2]} for h in hits[:20]
+                    ],  # 防止过大
                     **extra,
                 },
             )
@@ -699,12 +851,13 @@ class RuleEngineSlicer(SectionSlicer):
                     continue
             else:
                 if self.debug:
-                    print(f"      ⛔ pat[{i}] ignored: type={type(p).__name__} value={p!r}")
+                    print(
+                        f"      ⛔ pat[{i}] ignored: type={type(p).__name__} value={p!r}"
+                    )
 
         if self.debug:
             print(f"   🧪 compile_patternlikes: out={len(out)}")
         return out
-
 
     def _by_segment_tables(
         self,
@@ -723,7 +876,9 @@ class RuleEngineSlicer(SectionSlicer):
         """
         max_table_chars = int(p.get("max_table_chars") or 12000)
         min_table_rows = int(p.get("min_table_rows") or 3)
-        max_hits_per_pattern = int(p.get("max_hits_per_pattern") or 0)  # 0=不限（建议调试期先不限）
+        max_hits_per_pattern = int(
+            p.get("max_hits_per_pattern") or 0
+        )  # 0=不限（建议调试期先不限）
 
         patterns = self._compile_patternlikes(step.targets or [])
         if self.debug:
@@ -777,7 +932,9 @@ class RuleEngineSlicer(SectionSlicer):
                         if le == -1:
                             le = len(text)
                         line = text[ls:le]
-                        print(f"      ⚠️ regex_match_yes_but_blocks_0 pos={m.start()} line={line[:160]!r}")
+                        print(
+                            f"      ⚠️ regex_match_yes_but_blocks_0 pos={m.start()} line={line[:160]!r}"
+                        )
                     else:
                         print("      ⚠️ regex_match_no (pattern not found in text)")
                 continue
@@ -795,7 +952,9 @@ class RuleEngineSlicer(SectionSlicer):
                 kind = b.get("kind")
 
                 if self.debug:
-                    print(f"      ➤ block[{i}] kind={kind!r} title={str(title)[:60]!r} raw_len={len(raw)}")
+                    print(
+                        f"      ➤ block[{i}] kind={kind!r} title={str(title)[:60]!r} raw_len={len(raw)}"
+                    )
 
                 if not raw:
                     if self.debug:
@@ -807,7 +966,7 @@ class RuleEngineSlicer(SectionSlicer):
                 did_expand = False
 
                 # 1) 如果只是标题段：尝试向下抓表
-                is_title_like = (len(raw) <= 40 and ("表" in raw))
+                is_title_like = len(raw) <= 40 and ("表" in raw)
                 if is_title_like:
                     stat_title_like += 1
                     if self.debug:
@@ -823,7 +982,9 @@ class RuleEngineSlicer(SectionSlicer):
                         did_expand = True
                         stat_grabbed += 1
                         if self.debug:
-                            print(f"         ✅ grabbed_table len={len(grabbed)} preview={self._preview(grabbed)}")
+                            print(
+                                f"         ✅ grabbed_table len={len(grabbed)} preview={self._preview(grabbed)}"
+                            )
                     else:
                         if self.debug:
                             print("         ⚠️ grabbed_table=empty")
@@ -833,7 +994,9 @@ class RuleEngineSlicer(SectionSlicer):
                 if not ok:
                     stat_table_fail += 1
                     if self.debug:
-                        lines = [ln.strip() for ln in expanded.splitlines() if ln.strip()]
+                        lines = [
+                            ln.strip() for ln in expanded.splitlines() if ln.strip()
+                        ]
                         pipe_lines = sum(1 for ln in lines if ln.startswith("|"))
                         has_sep = ("|---" in expanded) or ("| ---" in expanded)
                         print(
@@ -844,7 +1007,9 @@ class RuleEngineSlicer(SectionSlicer):
 
                 stat_table_pass += 1
                 if self.debug:
-                    print(f"         ✅ looks_like_table=YES expanded={did_expand} expanded_len={len(expanded)}")
+                    print(
+                        f"         ✅ looks_like_table=YES expanded={did_expand} expanded_len={len(expanded)}"
+                    )
 
                 # 3) 截断
                 truncated = False
@@ -895,8 +1060,7 @@ class RuleEngineSlicer(SectionSlicer):
             )
 
         return out
-        
-    
+
     def _dedup_sections(self, sections: List[ReportSection]) -> List[ReportSection]:
         seen = set()
         out: List[ReportSection] = []
