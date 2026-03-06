@@ -8,21 +8,10 @@ from typing import Any, Dict, List, Optional, Sequence, Literal
 
 from fd_extractai_report.context import ReportContext, ReportSection
 from fd_extractai_report.detectors import ReportTypeDetector, BaseDetector
-from fd_extractai_report.converters import convert_word_to_md
-
+from fd_extractai_report.converters.markdown_converter import MarkdownFileConverter
 # ⚠️ 注意：不要在这里 import 旧 slicer/extractor。
 # 你现在的主线是 ruleset + RuleEngineSlicer / RuleEngineExtractorRunner。
 # 旧类如果保留，也应该在 _build_default_components() 内部按需惰性 import。
-
-
-# ============================================================
-# Converters
-# ============================================================
-
-class MarkdownFileConverter:
-    def convert(self, source_path: Path) -> str:
-        return convert_word_to_md(str(source_path))
-
 
 # ============================================================
 # Result / Debug
@@ -141,7 +130,7 @@ class ReportPipeline:
         self,
         *,
         converter: Optional[MarkdownFileConverter] = None,
-         type_detector: Optional[BaseDetector] = None,
+        type_detector: Optional[BaseDetector] = None,
         slicers: Optional[Sequence[Any]] = None,
         extractors: Optional[Sequence[Any]] = None,
         evaluator: Optional[BenchmarkEvaluator] = None,
@@ -208,6 +197,35 @@ class ReportPipeline:
         ctx.set_markdown(md_text)
         self._log(f"⏱ load cost={time.time() - start_time:.2f}s", debug)
         return ctx
+
+    def load_bytes(
+            self,
+            file_bytes: bytes,
+            *,
+            filename: Optional[str] = None,
+            context: Optional[ReportContext] = None,
+            debug: bool = False,
+        ) -> ReportContext:
+            """
+            bytes -> markdown -> ReportContext
+            用于 ExtractService / 节点：拿到文件 bytes 后直接交给 pipeline
+            """
+            if context is not None:
+                return context
+
+            if debug:
+                print(f"🚀 [LOAD_BYTES] filename={filename or '-'} size={len(file_bytes) if file_bytes else 0}")
+
+            start_time = time.time()
+
+            ctx = ReportContext(source_path=Path(filename).resolve() if filename else None)
+
+            md_text = self.converter(file_bytes or b"", filename=filename)
+            self._log(f"📄 BYTES->MD done chars={len(md_text)}", debug)
+
+            ctx.set_markdown(md_text or "")
+            self._log(f"⏱ load_bytes cost={time.time() - start_time:.2f}s", debug)
+            return ctx
 
     # -------------------------
     # Detect
@@ -411,6 +429,40 @@ class ReportPipeline:
 
         return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
 
+    def run_bytes(
+        self,
+        file_bytes: bytes,
+        *,
+        filename: Optional[str] = None,
+        slice_only: bool = True,
+        want_benchmark: bool = False,
+        debug: bool = False,
+    ) -> PipelineResult:
+        if debug:
+            print("\n" + "=" * 60)
+            print("🏁 ReportPipeline run_bytes")
+            print("=" * 60)
+
+        t0 = time.time()
+
+        ctx = self.load_bytes(file_bytes, filename=filename, debug=debug)
+        self.step_detect_report_type(ctx, debug=debug)
+        self.step_slice(ctx, debug=debug)
+        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        warnings = self.validate(outputs, debug=debug)
+
+        evaluations: List[dict] = []
+        if want_benchmark:
+            evaluations = self.step_benchmark()
+
+        if debug:
+            print("-" * 60)
+            print(f"🎉 done cost={time.time() - t0:.2f}s warnings={len(warnings)} eval={len(evaluations)}")
+            print("=" * 60 + "\n")
+
+        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
+
+    
     def run_until(
         self,
         *,
@@ -422,6 +474,42 @@ class ReportPipeline:
         debug: bool = False,
     ):
         ctx = self.load(docx_path=docx_path, markdown_text=markdown_text, debug=debug)
+        if until == "load":
+            return ctx
+
+        self.step_detect_report_type(ctx, debug=debug)
+        if until == "detect":
+            return ctx
+
+        self.step_slice(ctx, debug=debug)
+        if until == "slice":
+            return ctx
+
+        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        if until == "extract":
+            return ctx, outputs
+
+        warnings = self.validate(outputs, debug=debug)
+        if until == "validate":
+            return ctx, outputs, warnings
+
+        evaluations: List[dict] = []
+        if want_benchmark or until in ("benchmark", "all"):
+            evaluations = self.step_benchmark()
+
+        return PipelineResult(context=ctx, outputs=outputs, evaluations=evaluations, warnings=warnings)
+    
+    def run_until_bytes(
+        self,
+        file_bytes: bytes,
+        *,
+        filename: Optional[str] = None,
+        until: RunStage = "all",
+        slice_only: bool = True,
+        want_benchmark: bool = False,
+        debug: bool = False,
+    ):
+        ctx = self.load_bytes(file_bytes, filename=filename, debug=debug)
         if until == "load":
             return ctx
 

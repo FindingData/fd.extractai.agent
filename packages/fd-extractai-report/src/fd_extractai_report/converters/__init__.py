@@ -1,3 +1,3 @@
-from .word_to_md import convert_word_to_md, WordToMarkdownConverter
+from .markdown_converter import MarkdownFileConverter
 
-__all__ = ["convert_word_to_md", "WordToMarkdownConverter"]
+__all__ = ["MarkdownFileConverter"]
