@@ -6,9 +6,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Literal
 
+from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
+from fd_extractai_report.extractors.rule_engine_extractor import RuleEngineExtractorRunner
+from fd_extractai_report.rules.extracting.schema import ExtractRuleSet
 from fd_extractai_report.context import ReportContext, ReportSection
 from fd_extractai_report.detectors import ReportTypeDetector, BaseDetector
 from fd_extractai_report.converters.markdown_converter import MarkdownFileConverter
+from fd_extractai_report.settings import CONFIG, LLMConfig
 # ⚠️ 注意：不要在这里 import 旧 slicer/extractor。
 # 你现在的主线是 ruleset + RuleEngineSlicer / RuleEngineExtractorRunner。
 # 旧类如果保留，也应该在 _build_default_components() 内部按需惰性 import。
@@ -132,38 +136,57 @@ class ReportPipeline:
         converter: Optional[MarkdownFileConverter] = None,
         type_detector: Optional[BaseDetector] = None,
         slicers: Optional[Sequence[Any]] = None,
-        extractors: Optional[Sequence[Any]] = None,
+        extractor_runner: Optional[Any] = None,
         evaluator: Optional[BenchmarkEvaluator] = None,
         validators: Optional[Sequence[BaseValidator]] = None,
+        llm_config: Optional[LLMConfig] = None,
+        model_id: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        debug: bool = False,
     ) -> None:
         self.converter = converter or MarkdownFileConverter()
         self.type_detector = type_detector or ReportTypeDetector()
         self.evaluator = evaluator or BenchmarkEvaluator()
         self.validators = list(validators) if validators is not None else []
 
-        # ✅ 关键：只在“完全没传”时才构造默认组件
-        if slicers is None and extractors is None:
-            self.slicers, self.extractors = self._build_default_components()
-        else:
-            self.slicers = list(slicers) if slicers is not None else []
-            self.extractors = list(extractors) if extractors is not None else []
+        cfg = llm_config or CONFIG
 
-    def _build_default_components(self) -> tuple[list[Any], list[Any]]:
-        """
-        惰性构造默认 slicers/extractors（仅当你没传时）。
-        如果你现在要彻底切换到 ruleset 体系，可以把这里直接返回空列表。
-        """
-        try:        
-            slicers = []
-            extractors = []
-            return slicers, extractors
-        except Exception:
-            # ✅ 保底：不要因为默认组件缺失影响批处理
-            return [], []
+        self.model_id = model_id or cfg.model_id
+        self.base_url = base_url or cfg.base_url
+        self.api_key = api_key if api_key is not None else cfg.api_key
 
-    def _log(self, msg: str, debug: bool = True) -> None:
+        self.default_debug = debug
+        self.debug = debug
+
+        self.slicers = list(slicers) if slicers is not None else []
+        self.extractor_runner = extractor_runner
+
+        if slicers is None and extractor_runner is None:
+            self.slicers, self.extractor_runner = self._build_default_components()
+
+    def _log(self, msg: str,debug) -> None:
         if debug:
-            print(f"  {msg}")
+            print(msg)
+
+    def _build_default_components(self) -> tuple[list[Any], Optional[Any]]:
+        try:
+            slicers = [
+                RuleEngineSlicer(debug=self.default_debug),
+            ]
+
+            extractor_runner = RuleEngineExtractorRunner(
+                debug=self.default_debug,
+            model_id=self.model_id,
+            base_url=self.base_url,
+            api_key=self.api_key,
+            )
+
+            return slicers, extractor_runner
+        except Exception as e:
+            if self.default_debug:
+                print(f"⚠️ _build_default_components failed: {e!r}")
+            return [], None
 
     # -------------------------
     # Load
@@ -283,6 +306,7 @@ class ReportPipeline:
         empty_if_missing_slice: bool = True,
         debug: bool = False,
         max_slice_chars: int = 12000,
+        override: Optional[ExtractRuleSet] = None,
     ) -> Dict[str, List[dict]]:
         if debug:
             mode = "slice_only" if slice_only else "full"
@@ -291,32 +315,12 @@ class ReportPipeline:
         start_time = time.time()
 
         # 没有 extractors 就直接返回空（批处理时经常这么用）
-        if not self.extractors:
-            self._log("⚠️ no extractors configured, skip", debug)
+        if self.extractor_runner is None:
+            self._log("⚠️ no extractor_runner configured, skip", debug)
             return {}
 
-        inputs = self._prepare_extractor_inputs(
-            context,
-            slice_only=slice_only,
-            empty_if_missing_slice=empty_if_missing_slice,
-            debug=debug,
-            max_slice_chars=max_slice_chars,
-        )
-
-        outputs: Dict[str, List[dict]] = {}
-        registry = {ex.slug: ex for ex in self.extractors}
-
-        for slug, in_ctx in inputs.items():
-            ex_start = time.time()
-            if in_ctx is None:
-                outputs[slug] = []
-                self._log(f"⚠️ skip {slug}: missing slice", debug)
-                continue
-
-            results = registry[slug](in_ctx) or []
-            outputs[slug] = results
-            self._log(f"✨ extracted {slug}: rows={len(results)} cost={time.time() - ex_start:.2f}s", debug)
-
+        outputs = self.extractor_runner.run(context, override=override) or {}
+        self._log(f"✨ runner extracted outputs={list(outputs.keys())}", debug)
         self._log(f"⏱ extract cost={time.time() - start_time:.2f}s", debug)
         return outputs
 
@@ -401,10 +405,12 @@ class ReportPipeline:
         *,
         docx_path: Optional[str | Path] = None,
         markdown_text: Optional[str] = None,
-        slice_only: bool = True,
         want_benchmark: bool = False,
-        debug: bool = False,
+        debug: Optional[bool] = None,
+        override: Optional[ExtractRuleSet] = None,
     ) -> PipelineResult:
+        debug = self.default_debug if debug is None else debug
+
         if debug:
             print("\n" + "=" * 60)
             print("🏁 ReportPipeline run")
@@ -415,7 +421,7 @@ class ReportPipeline:
         ctx = self.load(docx_path=docx_path, markdown_text=markdown_text, debug=debug)
         self.step_detect_report_type(ctx, debug=debug)
         self.step_slice(ctx, debug=debug)
-        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        outputs = self.step_extract(ctx, debug=debug, override=override)
         warnings = self.validate(outputs, debug=debug)
 
         evaluations: List[dict] = []
@@ -434,10 +440,12 @@ class ReportPipeline:
         file_bytes: bytes,
         *,
         filename: Optional[str] = None,
-        slice_only: bool = True,
         want_benchmark: bool = False,
-        debug: bool = False,
+        debug: Optional[bool] = None,
+        override: Optional[ExtractRuleSet] = None,
     ) -> PipelineResult:
+        debug = self.default_debug if debug is None else debug
+
         if debug:
             print("\n" + "=" * 60)
             print("🏁 ReportPipeline run_bytes")
@@ -448,7 +456,7 @@ class ReportPipeline:
         ctx = self.load_bytes(file_bytes, filename=filename, debug=debug)
         self.step_detect_report_type(ctx, debug=debug)
         self.step_slice(ctx, debug=debug)
-        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        outputs = self.step_extract(ctx, debug=debug, override=override)
         warnings = self.validate(outputs, debug=debug)
 
         evaluations: List[dict] = []

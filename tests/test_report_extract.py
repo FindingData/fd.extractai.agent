@@ -147,7 +147,7 @@ def run_extract_batch(
     runner = RuleEngineExtractorRunner(
         debug=debug_extract,
         model_id=CONFIG.QWEN_MODEL_NAME,
-        model_url=CONFIG.QWEN_MODEL_URL,
+        base_url=CONFIG.QWEN_MODEL_URL,
         api_key=CONFIG.QWEN_KEY,
     )
 
@@ -322,7 +322,7 @@ if __name__ == "__main__":
     out_dir = input_dir / "_outputs"
 
     # ✅ pipeline：这里只要 load + detect 就够，slicers/extractors 传空
-    pipe = ReportPipeline(slicers=[], extractors=[])
+    pipe = ReportPipeline()
 
     print("\n===== BYTES MODE =====")
 

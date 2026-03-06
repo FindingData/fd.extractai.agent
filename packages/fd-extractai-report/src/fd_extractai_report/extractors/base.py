@@ -1,4 +1,3 @@
-# app/report/extractors/base.py  (你的 Extractor 所在文件)
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,9 +6,11 @@ from typing import Any, Dict, List, Optional, Sequence
 import langextract as lx
 from langextract.core import data
 from langextract.providers.openai import OpenAILanguageModel
+
+from fd_extractai_report.settings import CONFIG, LLMConfig
 from fd_extractai_report.context import ReportContext
-from config import CONFIG
-from fd_extractai_report.rules.extracting.schema import ExtractorSpec  # ✅ 只引用 spec（不再有 ExampleSpec）
+from fd_extractai_report.rules.extracting.schema import ExtractorSpec
+
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
@@ -18,35 +19,43 @@ class Extractor:
     slug: str = ""
     target_slice_key: str = "__full__"
     prompt_filename: str = ""
-    # ✅ 只保留“最终 examples”
+
+    # 最终 examples
     examples: Sequence[data.ExampleData] = ()
+
     input_slice_keys: Optional[List[str]] = None
     missing_slice_policy: str = "empty"
     add_titles: bool = True
-    max_input_chars: int = 12000    
+    max_input_chars: int = 12000
+
     def __init__(
         self,
         *,
+        llm_config: Optional[LLMConfig] = None,
         model_id: Optional[str] = None,
-        model_url: Optional[str] = None,
+        base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         max_char_buffer: int = 8192,
         num_ctx: int = 18000,
-        timeout: int = 10 * 60,
+        timeout: Optional[int] = None,
         spec: Optional[ExtractorSpec] = None,
-        examples: Optional[Sequence[data.ExampleData]] = None,  # ✅ runner 解析后传进来
+        examples: Optional[Sequence[data.ExampleData]] = None,
     ) -> None:
-        self.model_id = model_id or CONFIG.LOCAL_MODEL_NAME
-        self.model_url = model_url or CONFIG.LOCAL_MODEL_URL
-        self.api_key = api_key or ''
+        cfg = llm_config or CONFIG
+
+        self.model_id = model_id or cfg.model_id
+        self.base_url = base_url or cfg.base_url
+        self.api_key = api_key if api_key is not None else cfg.api_key
+        self.timeout = timeout if timeout is not None else cfg.timeout
+
         self.max_char_buffer = max_char_buffer
         self.num_ctx = num_ctx
-        self.timeout = timeout
 
         self.defaults: Dict[str, Any] = {}
         self.inject_context_fields: List[str] = []
 
         self._spec = spec
+
         if spec is not None:
             self.slug = spec.slug
             self.prompt_filename = spec.prompt_filename
@@ -57,54 +66,50 @@ class Extractor:
             self.add_titles = spec.add_titles
             self.max_input_chars = spec.max_input_chars
 
-        # ✅ 最终 examples 入口：优先使用传入的 examples，否则用 self.examples
         if examples is not None:
             self.examples = list(examples)
 
     def __call__(self, context: ReportContext) -> List[dict]:
         text = self.get_input_text(context)
         if not text or not text.strip():
-            return []        
+            return []
+
         doc = self.run_langextract(text, context=context)
         return self.post_process(doc, context=context)
-    
+
     def load_prompt(self) -> str:
         return (PROMPTS_DIR / self.prompt_filename).read_text(encoding="utf-8")
 
+    def build_language_model(self) -> OpenAILanguageModel:
+        return OpenAILanguageModel(
+            base_url=self.base_url,
+            api_key=self.api_key,
+            model_id=self.model_id,
+        )
+
     def run_langextract(self, text: str, *, context: ReportContext):
         prompt = self.load_prompt()
-        language_model = OpenAILanguageModel(
-                base_url = self.model_url,   # 这里放 https://dashscope.aliyuncs.com/compatible-mode/v1
-                 api_key =  self.api_key,  # 你的 dashscope key（别硬编码）
-                 model_id= self.model_id    # qwen-plus
-                # 其他你想传的也可以放这里（timeout 等）
-        )
+        language_model = self.build_language_model()
+
         return lx.extract(
             text,
             prompt_description=prompt,
             examples=list(self.examples) if self.examples else [],
-            # ✅ 关键：强制使用 OpenAI provider（DashScope compatible）
             language_model_type=OpenAILanguageModel,
-            model = language_model,
-            # max_char_buffer=self.max_char_buffer,
-            # language_model_params={
-            #     "num_ctx": self.num_ctx,
-            # }
-            # num_ctx 这种是否被 OpenAI provider支持要看实现；不支持就别传或放到别处
+            model=language_model,
         )
 
-    # get_input_text / _truncate / post_process 你原来的保持不动即可
     def get_input_text(self, context: ReportContext) -> str:
         keys = self.input_slice_keys
         if not keys:
             keys = [getattr(self, "target_slice_key", "__full__") or "__full__"]
 
-        # 1) 包含全文：直接走全文（最简单、最稳）
+        # 包含全文：直接走全文
         if "__full__" in keys:
             return self._truncate(context.ensure_markdown())
 
-        # 2) 合并多个切片
         parts: List[str] = []
+
         for k in keys:
             slices = context.get_slices(k) or []
             if not slices:
@@ -112,17 +117,21 @@ class Extractor:
                     raise KeyError(f"Slice '{k}' not found for extractor '{self.slug}'.")
                 if self.missing_slice_policy == "full":
                     return self._truncate(context.ensure_markdown())
-                continue  # empty：跳过
+                continue
 
             if len(slices) == 1:
                 parts.append(slices[0].text or "")
             else:
                 if self.add_titles:
                     joined = "\n\n".join(
-                        f"### {s.title or k}\n{s.text}" for s in slices if s and s.text
+                        f"### {s.title or k}\n{s.text}"
+                        for s in slices
+                        if s and s.text
                     )
                 else:
-                    joined = "\n\n".join(s.text for s in slices if s and s.text)
+                    joined = "\n\n".join(
+                        s.text for s in slices if s and s.text
+                    )
                 parts.append(joined)
 
         text = "\n\n".join(p for p in parts if p and p.strip())
@@ -133,7 +142,6 @@ class Extractor:
             return text[: self.max_input_chars]
         return text
 
-    # ✅ 通用后处理：保留你原逻辑 + defaults + inject_context_fields
     def post_process(self, annotated_doc, *, context: ReportContext) -> List[dict]:
         extractions = getattr(annotated_doc, "extractions", None) or []
         rows: List[dict] = []
@@ -147,12 +155,12 @@ class Extractor:
 
             row = dict(attrs)
 
-            # 1) defaults：空值兜底
+            # defaults 兜底
             for k, v in (self.defaults or {}).items():
                 if row.get(k) in (None, "", []):
                     row[k] = v
 
-            # 2) inject context fields：常用把 report_type 带上
+            # inject context fields
             for f in (self.inject_context_fields or []):
                 if f == "report_type":
                     row.setdefault("report_type", rt)

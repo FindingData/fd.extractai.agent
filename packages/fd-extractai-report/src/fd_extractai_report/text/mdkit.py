@@ -4,10 +4,9 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Pattern
 
-from markdown_it import MarkdownIt
+from markitdown import MarkItDown
 
-
-_md = MarkdownIt()
+_md = MarkItDown()
 
 
 def normalize_title(title: str) -> str:

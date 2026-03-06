@@ -11,11 +11,11 @@ from fd_extractai_report.rules.extracting.schema import ExtractRuleSet, Extracto
 
 
 class RuleEngineExtractorRunner:
-    def __init__(self, *, debug: bool = True, model_id: Optional[str] = None, model_url: Optional[str] = None,
+    def __init__(self, *, debug: bool = True, model_id: Optional[str] = None, base_url: Optional[str] = None,
                    api_key: Optional[str] = None):
         self.debug = debug
         self.model_id = model_id
-        self.model_url = model_url
+        self.base_url = base_url
         self.api_key = api_key  
 
     def run(self, context: ReportContext, *, override: Optional[ExtractRuleSet] = None) -> Dict[str, List[dict]]:
@@ -45,7 +45,7 @@ class RuleEngineExtractorRunner:
                     f"Expect ExampleData, got: {[type(x).__name__ for x in bad]}"
                 )
 
-            ex = Extractor(spec=merged, model_id=self.model_id, model_url=self.model_url,api_key=self.api_key, examples=ex_examples)
+            ex = Extractor(spec=merged, model_id=self.model_id, base_url=self.base_url,api_key=self.api_key, examples=ex_examples)
 
             # 可观测性：输入统计
             if self.debug:
