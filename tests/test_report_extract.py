@@ -116,6 +116,7 @@ def run_extract_batch(
     out_dir: Path,
     pipe: ReportPipeline,
     patterns: Optional[List[str]] = None,
+    use_bytes: bool = False,   # ⭐ 新增
     head_chars: int = 6000,
     debug_detect: bool = True,
     debug_slice: bool = True,
@@ -156,7 +157,11 @@ def run_extract_batch(
 
         try:
             # 1) load（doc/docx -> markdown）
-            ctx = pipe.load(docx_path=f, debug=False)
+            if use_bytes:
+                file_bytes = f.read_bytes()
+                ctx = pipe.load_bytes(file_bytes, filename=f.name, debug=False)
+            else:
+                ctx = pipe.load(docx_path=f, debug=False)
             md = ctx.ensure_markdown() or ""
 
             # 2) detect report_type
@@ -319,18 +324,12 @@ if __name__ == "__main__":
     # ✅ pipeline：这里只要 load + detect 就够，slicers/extractors 传空
     pipe = ReportPipeline(slicers=[], extractors=[])
 
+    print("\n===== BYTES MODE =====")
+
     run_extract_batch(
         input_dir=input_dir,
-        out_dir=out_dir,
+        out_dir=out_dir / "bytes",
         pipe=pipe,
         patterns=["*.doc", "*.docx"],
-        head_chars=6000,
-        debug_detect=True,
-        debug_slice=True,
-        debug_extract=True,
-        preview_chars=180,
-        print_text_preview=False,
-        export_markdown=True,
-        export_markdown_head=8000,
-        dump_slices=True,
+        use_bytes=True,
     )

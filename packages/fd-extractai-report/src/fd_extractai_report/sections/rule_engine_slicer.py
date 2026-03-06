@@ -5,9 +5,13 @@ from typing import Any, Dict, Iterable, List,Pattern, Tuple,Optional
 
 from fd_extractai_report.context import ReportContext, ReportSection
 from fd_extractai_report.sections.base import SectionSlicer
-from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
-from app.utils.markdown_utils import bucket_by_targets, sectionize, find_blocks_by_pattern
+from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep 
 
+from fd_extractai_report.text.mdkit import (
+    bucket_by_targets,
+    sectionize,
+    find_blocks_by_pattern,
+)
 
 class RuleEngineSlicer(SectionSlicer):
     """
@@ -177,10 +181,7 @@ class RuleEngineSlicer(SectionSlicer):
             produced = self._by_table_after(step, text, p, base_scope, base_idx)
         elif step.mode == "by_window_after":
             produced = self._by_window_after(step, text, p, base_scope, base_idx)
-        elif step.mode == "by_regex_between":
-            ends = (step.params or {}).get("ends")
-            if not ends:
-                errors.append(f"steps[{i}]({s.key}).params.ends required for mode=by_regex_between")
+        elif step.mode == "by_regex_between":                         
             produced = self._by_regex_between(step, text, p, base_scope, base_idx)
         elif step.mode == "by_segment_tables":
             produced = self._by_segment_tables(step, text, p, base_scope, base_idx)

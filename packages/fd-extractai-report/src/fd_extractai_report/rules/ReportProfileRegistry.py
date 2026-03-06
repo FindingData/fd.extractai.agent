@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Sequence, Dict
-from app.utils.report_utils import ReportType
 
 @dataclass(frozen=True)
 class ReportProfile:

@@ -220,7 +220,7 @@ class ReportPipeline:
 
             ctx = ReportContext(source_path=Path(filename).resolve() if filename else None)
 
-            md_text = self.converter(file_bytes or b"", filename=filename)
+            md_text = self.converter.convert(file_bytes or b"", filename=filename)
             self._log(f"📄 BYTES->MD done chars={len(md_text)}", debug)
 
             ctx.set_markdown(md_text or "")
