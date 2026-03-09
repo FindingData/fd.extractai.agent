@@ -30,8 +30,22 @@ ruleset_house = ExtractRuleSet(
             output_key="pricing",
         ),
          ExtractorSpec(
+            slug="object",
+            prompt_filename="house_object_prompt.txt",
+            # ✅ 房产：价值结论/估价结果通常在 summary / conclusion / valuation 一类
+            input_slice_keys=["object"],
+            missing_slice_policy="full",
+            max_input_chars=12000,
+            defaults={},
+            inject_context_fields=["report_type"],
+            examples={
+                "house": EXAMPLES_BY_TYPE["house"]["object"],
+            },
+            output_key="object",
+        ),
+         ExtractorSpec(
             slug="result",
-            prompt_filename="result_prompt.txt",
+            prompt_filename="house_result_prompt.txt",
             # ✅ 房产：价值结论/估价结果通常在 summary / conclusion / valuation 一类
             input_slice_keys=["result"],
             missing_slice_policy="full",

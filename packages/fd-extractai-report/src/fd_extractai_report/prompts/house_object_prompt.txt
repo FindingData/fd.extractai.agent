@@ -1,0 +1,17 @@
+请从给定的房地产估价报告片段中提取“估价对象基本信息”。
+
+重点提取以下字段：
+- object_name：名称
+- address：坐落
+- object_scope：估价对象范围
+- floor：所在层次/地上总层数
+- usage：规划用途
+- certificate_number：权证号码
+- owner_name：产权人
+- building_area：产权面积（㎡）
+
+要求：
+1. 仅提取文本中明确出现的信息，不要臆造
+2. 面积字段转为数字
+3. 保留原始权证号格式
+4. 输出类型为 valuation_object_item

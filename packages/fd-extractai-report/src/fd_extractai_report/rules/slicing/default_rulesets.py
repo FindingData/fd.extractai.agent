@@ -58,6 +58,19 @@ ruleset_house = SliceRuleSet(
                     },
             missing="empty",
         ),
+         SliceStep(
+            key="object",
+            mode="by_segment_tables",
+            within="summary",
+            targets=[
+                r"估价对象基本情况一览表",     
+                r"估价对象.*一览表",                      
+            ],
+            params={
+                "max_table_chars": 12000,
+                "min_table_rows": 3,
+            }
+            ),
         SliceStep(
             key="result",
             mode="by_segment_tables",
@@ -70,7 +83,7 @@ ruleset_house = SliceRuleSet(
                 "max_table_chars": 12000,
                 "min_table_rows": 3,
             }
-            )
+            ),
     ],    
 )
 

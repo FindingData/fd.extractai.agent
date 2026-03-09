@@ -31,6 +31,30 @@ house_example_price = data.ExampleData(
 )
 
 
+house_example_object = data.ExampleData(
+    text="""
+| 名称 | 坐落 | 估价对象范围 | 所在层次/地上总层数 | 规划用途 | 权证号码 | 产权人 | 产权面积（㎡） |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 金石雅苑 | 雨花区万家丽中路二段345号金石雅苑5栋1101 | 房屋及其占有的土地使用权 | 11/30 | 住宅 | 湘（2025）长沙市不动产权第0372431号 | 张佳望 | 148.32 |
+""",
+    extractions=[
+        data.Extraction(
+            "valuation_object_item",
+            "湘（2025）长沙市不动产权第0372431号",
+            attributes={
+                "object_name": "金石雅苑",
+                "address": "雨花区万家丽中路二段345号金石雅苑5栋1101",
+                "object_scope": "房屋及其占有的土地使用权",
+                "floor": "11/30",
+                "usage": "住宅",
+                "certificate_number": "湘（2025）长沙市不动产权第0372431号",
+                "owner_name": "张佳望",
+                "building_area": 148.32,
+            },
+        )
+    ],
+)
+
 house_example_result = data.ExampleData(
     text="""
 | 估价对象 | 权证号 | 权利人 | 坐落 | 用途 | 所在层/总层数 | 建筑面积（m2） | 单价（元/m2) | 总价（元） |
@@ -52,7 +76,7 @@ house_example_result = data.ExampleData(
                 "building_area": 61.99,
                 "usage": "商业",
                 "total_price": 219135,
-                "location": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",          # 可选
+                "address": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",          # 可选
                 "floor_info": "1/6",        # 可选
                 "unit_price": 3535          # 可选
             }
@@ -400,7 +424,7 @@ house_example_targets_table = data.ExampleData(
                 "object_num": "1",
                 "certificate_number": "湘(2023)长沙市不动产权第0386909号",
                 "owner_name": "杨瑾",
-                "location": "岳麓区xxx路xx号",
+                "address": "岳麓区xxx路xx号",
                 "usage": "办公",
                 "floor": "8/32",
                 "building_area": 40.75,
@@ -426,7 +450,7 @@ land_example_targets = data.ExampleData(
             "430100-2025-001",
             attributes={
                 "parcel_id": "430100-2025-001",
-                "location": "长沙市xx区xx路",
+                "address": "长沙市xx区xx路",
                 "usage": "商服用地",
                 "land_area": 10000.00,
                 "plot_ratio": 3.0,
@@ -473,7 +497,8 @@ asset_example_targets = data.ExampleData(
 EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
     "house": {
         "price":[house_example_price],
-        "result":[house_example_result],
+        "object":[house_example_object],
+        "result":[house_example_result],        
         "purpose": [house_example_purpose],
         "assumptions": [house_example_assumption],
         "method": [house_example_method],
