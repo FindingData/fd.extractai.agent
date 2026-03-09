@@ -77,7 +77,7 @@ house_example_result = data.ExampleData(
                 "usage": "商业",
                 "total_price": 219135,
                 "address": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",          # 可选
-                "floor_info": "1/6",        # 可选
+                "floor": "1/6",        # 可选
                 "unit_price": 3535          # 可选
             }
         )

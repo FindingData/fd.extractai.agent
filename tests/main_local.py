@@ -57,7 +57,7 @@ example_2 = data.ExampleData(
         data.Extraction("property_name", "雁峰区和平南路9号"),
         data.Extraction("property_location", "雁峰区和平南路9号"),
         data.Extraction("building_area", "219.29平方米"),
-        data.Extraction("floor_info", "1/8"),
+        data.Extraction("floor", "1/8"),
         data.Extraction("planned_use", "商服"),
         data.Extraction("ownership_certificate_number", "衡房权证雁峰区字第00216768号/衡国用（2006B）第3051333号"),
         data.Extraction("owner_name", "廖湖北"),
