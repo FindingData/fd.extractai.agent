@@ -10,6 +10,7 @@ dependencies = [
     "markitdown[docx,pdf,xlsx]>=0.1.5",
     "langextract>=1.1.1",
     "markdown-it-py>=3.0.0",
+    "pydantic>=2.0",
 ]
 
 [tool.setuptools]
@@ -17,3 +18,12 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+fd_extractai_report = [
+    "benchmarks/*.json",
+    "config/*.yaml",
+    "prompts/*.txt",
+    "rules/**/*.json",
+    "rules/**/*.yaml",    
+]
