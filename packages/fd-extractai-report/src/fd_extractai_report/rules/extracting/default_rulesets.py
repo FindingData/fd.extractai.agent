@@ -62,7 +62,7 @@ ruleset_house = ExtractRuleSet(
             prompt_filename="house_result_prompt.txt",
             # ✅ 房产：价值结论/估价结果通常在 summary / conclusion / valuation 一类
             input_slice_keys=["result"],
-            missing_slice_policy="full",
+            missing_slice_policy="empty",             
             max_input_chars=12000,
             defaults={},
             inject_context_fields=["report_type"],

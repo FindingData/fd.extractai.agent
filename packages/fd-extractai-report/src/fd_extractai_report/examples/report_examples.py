@@ -133,7 +133,7 @@ house_example_result = data.ExampleData(
     extractions=[
         # 仅定义第一条记录的结构
         data.Extraction(
-            "result_item",
+            "valuation_target_item",
             "洪房权证黔城镇字第711000391号",  # 锚点：权证号
             attributes={
                 "certificate_number": "洪房权证黔城镇字第711000391号",
@@ -149,6 +149,39 @@ house_example_result = data.ExampleData(
     ],
 )
 
+
+house_example_result_except = data.ExampleData(
+    text="""
+| 估价对象 | 坐落 | 估价对象范围 | 所在层次/总层数 | 用途 | 权证号 | 权利人 | 产权面积（㎡） |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 大祥区白洲社区7-3安置地 | 房屋及其占有的土地使用权 | 1/5 | 商业服务 | 湘（2024）邵阳市不动产权第0000461号 | 张运杰 | 81.47 |
+
+| 估价对象 | 不动产权证号 | 权利人 | 坐落 | 结构 | 用途 | 所在层/总层数 | 建筑面积（m2） | 单价（元/m2） | 总价（元） |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 湘（2024）邵阳市不动产权第0000461号 | 张运杰 | 大祥区白洲社区7-3安置地 | 混合 | 商业服务 | 1/5 | 81.47 | 3900 | 317733 |
+| 合计 |  |  |  |  |  |  | 81.47 |  | 317733 |
+""",
+    extractions=[
+        # 仅定义第一条记录的结构
+        data.Extraction(
+            "valuation_target_item",
+            "湘（2024）邵阳市不动产权第0000461号",
+            attributes={
+                "certificate_number": "湘（2024）邵阳市不动产权第0000461号",
+                "owner_name": "张运杰",
+                "building_area": 81.47,
+                "usage": "商业服务",
+                "total_price": 317733,
+                "address": "大祥区白洲社区7-3安置地",
+                "floor": "1/5",
+                "unit_price": 3900,
+                "structure": "混合",
+                "property_scope": "房屋及其占有的土地使用权",
+                "report_type": "house",
+            },
+        )
+    ],
+)
 
 house_example_purpose = data.ExampleData(
     text="""

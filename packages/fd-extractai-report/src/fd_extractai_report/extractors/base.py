@@ -113,12 +113,14 @@ class Extractor:
         for k in keys:
             slices = context.get_slices(k) or []
             if not slices:
-                if self.missing_slice_policy == "raise":
+                policy = (self.missing_slice_policy or "empty").lower()
+                if policy == "raise":
                     raise KeyError(f"Slice '{k}' not found for extractor '{self.slug}'.")
-                if self.missing_slice_policy == "full":
+                if policy == "full":
                     return self._truncate(context.ensure_markdown())
-                continue
-
+                if policy == "empty":
+                    continue
+                
             if len(slices) == 1:
                 parts.append(slices[0].text or "")
             else:

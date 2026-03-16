@@ -122,7 +122,7 @@ ruleset_land = SliceRuleSet(
             ],
             params={
                 "ends": [
-                    r"第二部份",
+                    r"第二部分",
                     r"估价对象界定",
                 ],
                 "loose_space": True,
