@@ -16,6 +16,20 @@ ruleset_house = ExtractRuleSet(
     max_input_chars=12000,    
     extractors=[
         ExtractorSpec(
+            slug="cover",
+            prompt_filename="cover_prompt.txt",
+            # ✅ 房产：价值结论/估价结果通常在 summary / conclusion / valuation 一类
+            input_slice_keys=["cover"],
+            missing_slice_policy="full",
+            max_input_chars=9000,
+            defaults={},
+            inject_context_fields=["report_type"],
+            examples={
+                "house": EXAMPLES_BY_TYPE["house"]["cover"],
+            },
+            output_key="cover",
+        ),
+        ExtractorSpec(
             slug="price",
             prompt_filename="price_prompt.txt",
             # ✅ 房产：价值结论/估价结果通常在 summary / conclusion / valuation 一类

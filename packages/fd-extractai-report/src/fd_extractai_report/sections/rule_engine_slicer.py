@@ -14,6 +14,9 @@ from fd_extractai_report.text.mdkit import (
     find_blocks_by_pattern,
 )
 
+_MD_TABLE_SEP_RE = re.compile(
+        r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"
+    )
 
 class RuleEngineSlicer(SectionSlicer):
     """
@@ -186,9 +189,7 @@ class RuleEngineSlicer(SectionSlicer):
                         f"➕ add_slice BEFORE key={s.key!r} title={s.title!r} "
                         f"len={len(s.text or '')} count_before={before_cnt}",
                     )
-
-                    context.add_slice(s)
-
+                    context.add_slice(s)  # 重要,这里为了拿到二次切片的结果
                     after_cnt = len((context.slices or {}).get(s.key, []) or [])
                     self._dbg(
                         context,
@@ -859,6 +860,41 @@ class RuleEngineSlicer(SectionSlicer):
             print(f"   🧪 compile_patternlikes: out={len(out)}")
         return out
 
+
+
+    def _is_blankish_line(self, s: str) -> bool:
+        if s is None:
+            return True
+        s = (
+            s.replace("\u3000", " ")
+            .replace("\xa0", " ")
+            .replace("\r", "")
+            .replace("\t", " ")
+        )
+        return not s.strip()
+
+    def _looks_like_md_table_header(self, header_line: str, sep_line: str) -> bool:
+        if "|" not in (header_line or ""):
+            return False
+        return bool(_MD_TABLE_SEP_RE.match(sep_line or ""))
+
+    def _extract_table_block_from_lines(
+        self,
+        lines: List[str],
+        start_idx: int,
+    ) -> str:
+        buf = [lines[start_idx].rstrip(), lines[start_idx + 1].rstrip()]
+        j = start_idx + 2
+        while j < len(lines):
+            ln = lines[j].rstrip()
+            if self._is_blankish_line(ln):
+                break
+            if "|" not in ln:
+                break
+            buf.append(ln)
+            j += 1
+        return "\n".join(buf).strip()
+
     def _by_segment_tables(
         self,
         step: SliceStep,
@@ -867,199 +903,93 @@ class RuleEngineSlicer(SectionSlicer):
         base_scope: str,
         base_idx: int,
     ) -> List[ReportSection]:
-        """
-        段内表格抽取：
-        - 对 step.targets 逐个 regex 找 block（find_blocks_by_pattern）
-        - 如果 block 只是标题（短、含“表”），向下抓表
-        - 用 _looks_like_md_table 过滤
-        - truncate + 去重
-        """
         max_table_chars = int(p.get("max_table_chars") or 12000)
         min_table_rows = int(p.get("min_table_rows") or 3)
-        max_hits_per_pattern = int(
-            p.get("max_hits_per_pattern") or 0
-        )  # 0=不限（建议调试期先不限）
+        max_hits_per_pattern = int(p.get("max_hits_per_pattern") or 0)
+        scan_limit_lines = int(p.get("scan_limit_lines") or 12)
 
         patterns = self._compile_patternlikes(step.targets or [])
+        if not patterns:
+            return []
+
+        sections: List[ReportSection] = []
+        seen = set()
+
         if self.debug:
             print(
                 f"   🧩 by_segment_tables: step={step.key} scope={base_scope} idx={base_idx} "
                 f"text_len={len(text)} patterns={len(patterns)} "
-                f"max_table_chars={max_table_chars} min_table_rows={min_table_rows} max_hits_per_pattern={max_hits_per_pattern or '∞'}"
+                f"max_table_chars={max_table_chars} min_table_rows={min_table_rows} "
+                f"max_hits_per_pattern={max_hits_per_pattern or '∞'} scan_limit_lines={scan_limit_lines}"
             )
 
-        if not patterns:
-            if self.debug:
-                print("   ⚠️ by_segment_tables: no valid patterns -> return []")
-            return []
+        for pat in patterns:
+            hits = 0
 
-        out: List[ReportSection] = []
-        seen = set()
+            for match in pat.finditer(text):
+                if max_hits_per_pattern > 0 and hits >= max_hits_per_pattern:
+                    break
 
-        # 统计：帮助你判断到底卡在哪个环节
-        stat_blocks = 0
-        stat_raw_nonempty = 0
-        stat_title_like = 0
-        stat_grabbed = 0
-        stat_table_pass = 0
-        stat_table_fail = 0
-        stat_dedup_skip = 0
-        stat_truncated = 0
-
-        for pi, pat in enumerate(patterns):
-            if self.debug:
-                print(f"   🔍 pattern[{pi}]={pat.pattern!r}")
-
-            blocks = find_blocks_by_pattern(text, pat)
-
-            if self.debug:
-                print(f"      📦 blocks_found={len(blocks)}")
-
-            if not blocks:
-                # 关键诊断：pattern 是否至少能在 text 里匹配到？
-                # 这不改变逻辑，只告诉你是“pattern没命中”还是“命中但 find_blocks 不产块”
-                m = None
-                try:
-                    m = pat.search(text)
-                except Exception as e:
-                    if self.debug:
-                        print(f"      ❌ pat.search error: {e}")
-
-                if self.debug:
-                    if m:
-                        ls = text.rfind("\n", 0, m.start()) + 1
-                        le = text.find("\n", m.start())
-                        if le == -1:
-                            le = len(text)
-                        line = text[ls:le]
-                        print(
-                            f"      ⚠️ regex_match_yes_but_blocks_0 pos={m.start()} line={line[:160]!r}"
-                        )
-                    else:
-                        print("      ⚠️ regex_match_no (pattern not found in text)")
-                continue
-
-            stat_blocks += len(blocks)
-
-            if max_hits_per_pattern and len(blocks) > max_hits_per_pattern:
-                if self.debug:
-                    print(f"      ✂️ cap blocks {len(blocks)} -> {max_hits_per_pattern}")
-                blocks = blocks[:max_hits_per_pattern]
-
-            for i, b in enumerate(blocks):
-                title = b.get("title") or b.get("kind", "snippet")
-                raw = (b.get("text") or "").strip()
-                kind = b.get("kind")
-
-                if self.debug:
-                    print(
-                        f"      ➤ block[{i}] kind={kind!r} title={str(title)[:60]!r} raw_len={len(raw)}"
-                    )
-
-                if not raw:
-                    if self.debug:
-                        print("         ⛔ skip: raw empty")
+                title = match.group(0).strip()
+                lookahead_text = text[match.end(): match.end() + max_table_chars]
+                if not lookahead_text:
                     continue
 
-                stat_raw_nonempty += 1
-                expanded = raw
-                did_expand = False
-
-                # 1) 如果只是标题段：尝试向下抓表
-                is_title_like = len(raw) <= 40 and ("表" in raw)
-                if is_title_like:
-                    stat_title_like += 1
-                    if self.debug:
-                        print(f"         🧷 title_like=yes raw={raw[:80]!r}")
-
-                    grabbed = self._grab_table_after_heading(
-                        text,
-                        raw,
-                        max_chars=min(max_table_chars, 8000),
-                    )
-                    if grabbed:
-                        expanded = grabbed
-                        did_expand = True
-                        stat_grabbed += 1
-                        if self.debug:
-                            print(
-                                f"         ✅ grabbed_table len={len(grabbed)} preview={self._preview(grabbed)}"
-                            )
-                    else:
-                        if self.debug:
-                            print("         ⚠️ grabbed_table=empty")
-
-                # 2) 过滤：必须像表
-                ok = self._looks_like_md_table(expanded, min_rows=min_table_rows)
-                if not ok:
-                    stat_table_fail += 1
-                    if self.debug:
-                        lines = [
-                            ln.strip() for ln in expanded.splitlines() if ln.strip()
-                        ]
-                        pipe_lines = sum(1 for ln in lines if ln.startswith("|"))
-                        has_sep = ("|---" in expanded) or ("| ---" in expanded)
-                        print(
-                            f"         ⛔ looks_like_table=NO pipe_lines={pipe_lines} has_sep={has_sep} "
-                            f"expanded_len={len(expanded)} preview={self._preview(expanded)}"
-                        )
+                lines = lookahead_text.splitlines()
+                if len(lines) < 2:
                     continue
 
-                stat_table_pass += 1
-                if self.debug:
-                    print(
-                        f"         ✅ looks_like_table=YES expanded={did_expand} expanded_len={len(expanded)}"
-                    )
+                table_block = ""
+                max_scan = min(len(lines) - 1, scan_limit_lines)
 
-                # 3) 截断
-                truncated = False
-                if max_table_chars and len(expanded) > max_table_chars:
-                    expanded = expanded[:max_table_chars]
-                    truncated = True
-                    stat_truncated += 1
-                    if self.debug:
-                        print(f"         ✂️ truncated to {max_table_chars}")
+                for i in range(max_scan):
+                    line1 = lines[i]
+                    line2 = lines[i + 1] if i + 1 < len(lines) else ""
 
-                # 4) 去重
-                sig = (expanded[:200], pat.pattern, base_scope, base_idx)
-                if sig in seen:
-                    stat_dedup_skip += 1
+                    if self._is_blankish_line(line1):
+                        continue
+
+                    if self._looks_like_md_table_header(line1.rstrip(), line2.rstrip()):
+                        table_block = self._extract_table_block_from_lines(lines, i)
+                        break
+
+                if not table_block:
                     if self.debug:
-                        print("         🧹 dedup_skip")
+                        print(f"   ⚪ no table after title={title!r}")
                     continue
-                seen.add(sig)
 
-                out.append(
-                    ReportSection(
-                        key=step.key,
-                        title=str(title),
-                        text=expanded,
-                        metadata={
-                            "mode": step.mode,
-                            "pattern": pat.pattern,
-                            "kind": b.get("kind"),
-                            "match_index": i,
-                            "base_scope": base_scope,
-                            "base_idx": base_idx,
-                            "ruleset": self.ruleset.name,
-                            "expanded": expanded != raw,
-                            "truncated": truncated,
-                            "max_table_chars": max_table_chars,
-                            "min_table_rows": min_table_rows,
-                        },
-                    )
+                table_block = table_block[:max_table_chars].strip()
+
+                if not self._looks_like_md_table(table_block, min_rows=min_table_rows):
+                    if self.debug:
+                        print(f"   ⚪ reject non-table after title={title!r}")
+                    continue
+
+                dedup_key = re.sub(r"\s+", "", table_block)
+                if dedup_key in seen:
+                    continue
+                seen.add(dedup_key)
+
+                section = ReportSection(
+                    key=step.key,
+                    title=title,
+                    text=table_block,
+                    metadata={
+                        "scope": base_scope,
+                        "scope_idx": base_idx,
+                        "extract_mode": "by_segment_tables",
+                        "pattern": getattr(pat, "pattern", str(pat)),
+                    },
                 )
+                sections.append(section)
+                hits += 1
 
-        if self.debug:
-            print(
-                "   📊 by_segment_tables summary: "
-                f"blocks={stat_blocks} raw_nonempty={stat_raw_nonempty} "
-                f"title_like={stat_title_like} grabbed={stat_grabbed} "
-                f"table_pass={stat_table_pass} table_fail={stat_table_fail} "
-                f"dedup_skip={stat_dedup_skip} truncated={stat_truncated} out={len(out)}"
-            )
+                if self.debug:
+                    print(
+                        f"   ✅ table captured: title={title!r} rows={len([x for x in table_block.splitlines() if x.strip()])}"
+                    )
 
-        return out
+        return sections
 
     def _dedup_sections(self, sections: List[ReportSection]) -> List[ReportSection]:
         seen = set()

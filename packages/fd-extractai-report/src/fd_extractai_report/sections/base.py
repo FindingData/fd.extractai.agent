@@ -15,9 +15,7 @@ class SectionSlicer(ABC):
         self.key = key
 
     def __call__(self, context: ReportContext) -> Sequence[ReportSection]:
-        slices = list(self.slice(context))
-        for section in slices:
-            context.add_slice(section)
+        slices = list(self.slice(context))        
         return slices
 
     @abstractmethod

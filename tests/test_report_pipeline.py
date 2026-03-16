@@ -41,19 +41,23 @@ def _collect_sections(ctx) -> List[Any]:
             sections.extend(v)
     return sections
 
-
 def dump_sections(sections: List[Any], out_dir: Path, stem: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    for sec in sorted(sections, key=lambda s: (getattr(s, "key", "") or "")):
+    for idx, sec in enumerate(
+        sorted(sections, key=lambda s: (getattr(s, "key", "") or "")),
+        1,
+    ):
         key = _safe_key(getattr(sec, "key", "") or "unknown")
         text = (getattr(sec, "text", None) or "").strip("\n")
 
-        p = out_dir / f"{stem}.{key}.md"
+        p = out_dir / f"{stem}.{key}.{idx:03d}.md"
         p.write_text(text, encoding="utf-8")
 
-        print(f"📝 wrote slice: {p.name} len={len(text)}")
-
+        print(
+            f"📝 wrote slice: {p.name} "
+            f"key={getattr(sec, 'key', None)} len={len(text)}"
+        )
 
 def _price_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not rows:

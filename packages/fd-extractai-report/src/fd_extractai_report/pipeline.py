@@ -516,7 +516,7 @@ class ReportPipeline:
         if until == "slice":
             return ctx
 
-        outputs = self.step_extract(ctx, slice_only=slice_only, debug=debug)
+        outputs = self.step_extract(ctx, debug=debug)
         if until == "extract":
             return ctx, outputs
 

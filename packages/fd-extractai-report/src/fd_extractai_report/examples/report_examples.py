@@ -9,6 +9,71 @@ ReportType = Literal["house", "land", "asset"]
 # 1) PURPOSE / ASSUMPTIONS / METHOD / CONCLUSION（按类型）
 # =========================================================
 
+
+# -------- HOUSE --------
+house_example_cover = data.ExampleData(
+    text="""
+房地产抵押估价报告
+
+估价报告编号：湘经典（2025）长房011211A号
+估价项目名称：岳麓区汇智中路179号金导园工业用房D栋103等3套房地产抵押价值评估
+估价委托人：中国农行银行长沙分行
+房地产估价机构：湖南经典房地产评估咨询有限公司
+注册房地产估价师：李萍 注册号：4320040057
+刘娟 注册号：4320200023
+估价报告出具日期：2026年01月07日
+""",
+    extractions=[
+        data.Extraction(
+            "cover_item",
+            "房地产抵押估价报告",
+            attributes={
+                "report_title": "房地产抵押估价报告",
+                "report_number": "湘经典（2025）长房011211A号",
+                "project_name": "岳麓区汇智中路179号金导园工业用房D栋103等3套房地产抵押价值评估",
+                "client": "中国农行银行长沙分行",
+                "valuation_agency": "湖南经典房地产评估咨询有限公司",
+                "appraisers": [
+                    {
+                        "name": "李萍",
+                        "registration_no": "4320040057",
+                    },
+                    {
+                        "name": "刘娟",
+                        "registration_no": "4320200023",
+                    },
+                ],
+                "report_date": "2026年01月07日",
+                "report_type": "mortgage",
+                "confidence": "high",
+                "raw_text": "房地产抵押估价报告；估价报告编号：湘经典（2025）长房011211A号；估价项目名称：岳麓区汇智中路179号金导园工业用房D栋103等3套房地产抵押价值评估；估价委托人：中国农行银行长沙分行；房地产估价机构：湖南经典房地产评估咨询有限公司；注册房地产估价师：李萍 注册号：4320040057；刘娟 注册号：4320200023；估价报告出具日期：2026年01月07日",
+            },
+        )
+    ],
+)
+
+
+house_example_price = data.ExampleData(
+    text="""
+本公司根据估价目的，遵循估价原则，采用科学合理的估价方法，在认真分析现有资料的基础上，经过测算，结合估价经验与对影响房地产市场价格因素进行分析，确定估价对象在市场上有足够的买方和卖方，并且进入市场无障碍的条件下，于价值时点的假定未设立法定优先受偿权下的市场价值单价为7554元/平方米，总价为112.04万元，估价师知悉的法定优先受偿款为0元，最后确定委评房地产的抵押价值单价为7554元/平方米，总价为112.04万元（大写：人民币壹佰壹拾贰万零肆佰元整)。估价结果汇总如下表所示。
+""",
+    extractions=[
+        data.Extraction(
+            "price_item",
+            "总价为112.04万元",
+            attributes={
+                # ✅ 统一口径：总价用“元”
+                "total_price": 1120400,  # 112.04 万元 => 1,120,400 元
+                "unit_price": 7554,  # 元/㎡
+                "raw_text": "市场价值单价为7554元/平方米，总价为112.04万元；抵押价值单价为7554元/平方米，总价为112.04万元",
+                "report_type": "house",
+                "confidence": "high",
+            },
+        )
+    ],
+)
+
+
 # -------- HOUSE --------
 house_example_price = data.ExampleData(
     text="""
@@ -20,8 +85,8 @@ house_example_price = data.ExampleData(
             "总价为112.04万元",
             attributes={
                 # ✅ 统一口径：总价用“元”
-                "total_price": 1120400,          # 112.04 万元 => 1,120,400 元
-                "unit_price": 7554,              # 元/㎡                
+                "total_price": 1120400,  # 112.04 万元 => 1,120,400 元
+                "unit_price": 7554,  # 元/㎡
                 "raw_text": "市场价值单价为7554元/平方米，总价为112.04万元；抵押价值单价为7554元/平方米，总价为112.04万元",
                 "report_type": "house",
                 "confidence": "high",
@@ -66,23 +131,23 @@ house_example_result = data.ExampleData(
 
 """,
     extractions=[
-       # 仅定义第一条记录的结构
+        # 仅定义第一条记录的结构
         data.Extraction(
-            "result_item", 
-            "洪房权证黔城镇字第711000391号", # 锚点：权证号
-            attributes={ 
+            "result_item",
+            "洪房权证黔城镇字第711000391号",  # 锚点：权证号
+            attributes={
                 "certificate_number": "洪房权证黔城镇字第711000391号",
                 "owner_name": "肖春梅",
                 "building_area": 61.99,
                 "usage": "商业",
                 "total_price": 219135,
-                "address": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",          # 可选
-                "floor": "1/6",        # 可选
-                "unit_price": 3535          # 可选
-            }
+                "address": "洪江市黔城镇玉壶路交通局隔壁01、02等2套",  # 可选
+                "floor": "1/6",  # 可选
+                "unit_price": 3535,  # 可选
+            },
         )
-    ]
-)  
+    ],
+)
 
 
 house_example_purpose = data.ExampleData(
@@ -307,8 +372,8 @@ asset_example_price = data.ExampleData(
             "（￥1,256.45万元）",
             attributes={
                 # ✅ 总价统一为“元”
-                "total_price": 12564500,   # 1,256.45 万元 => 12,564,500 元
-                "unit_price":0,
+                "total_price": 12564500,  # 1,256.45 万元 => 12,564,500 元
+                "unit_price": 0,
                 "unit": "万元",
                 "raw_text": "委估专利权的市场价值评估值为：人民币壹仟贰佰伍拾陆万肆仟伍佰元整（￥1,256.45万元）",
                 "report_type": "asset",
@@ -496,9 +561,10 @@ asset_example_targets = data.ExampleData(
 
 EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
     "house": {
-        "price":[house_example_price],
-        "object":[house_example_object],
-        "result":[house_example_result],        
+        "cover": [house_example_cover],
+        "price": [house_example_price],
+        "object": [house_example_object],
+        "result": [house_example_result],
         "purpose": [house_example_purpose],
         "assumptions": [house_example_assumption],
         "method": [house_example_method],
@@ -506,7 +572,7 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "targets": [house_example_targets_table],
     },
     "land": {
-        "price":[land_example_price],
+        "price": [land_example_price],
         "purpose": [land_example_purpose],
         "assumptions": [land_example_assumption],
         "method": [land_example_method],
@@ -514,7 +580,7 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "targets": [land_example_targets],
     },
     "asset": {
-         "price":[asset_example_price],        
+        "price": [asset_example_price],
         "purpose": [asset_example_purpose],
         "assumptions": [asset_example_assumption],
         "method": [asset_example_method],

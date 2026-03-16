@@ -1,0 +1,21 @@
+prompt_description = """
+请从文本中抽取房地产估价报告封面信息。
+
+抽取字段：
+- cover_item：
+  - report_title
+  - report_number
+  - project_name
+  - client_name
+  - valuation_agency
+  - report_date
+- appraiser_item：
+  - appraiser_name
+  - registration_no
+
+要求：
+1. 仅抽取文本中明确出现的内容，不要猜测、补全或改写。
+2. 多个注册房地产估价师分别抽取，姓名与注册号正确对应。
+3. 保留原文格式。
+4. 不要提取正文中的估价结果、价值结论、假设条件等非封面内容。
+"""
