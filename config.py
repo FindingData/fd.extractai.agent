@@ -15,6 +15,10 @@ class Config:
     QWEN_MODEL_NAME = os.getenv("QWEN_MODEL_NAME", "qwen-plus")
     QWEN_KEY        = os.getenv("QWEN_KEY",        "")
 
+    DOUBAO_MODEL_URL  = os.getenv("DOUBAO_MODEL_URL",  "https://ark.cn-beijing.volces.com/api/v3")
+    DOUBAO_MODEL_NAME = os.getenv("DOUBAO_MODEL_NAME", "doubao-seed-2-0-lite-260215")
+    DOUBAO_MODEL_KEY        = os.getenv("DOUBAO_MODEL_KEY",        "")
+
     MAX_TIMEOUT = int(os.getenv('MAX_TIMEOUT', 20))
     
 

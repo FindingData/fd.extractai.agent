@@ -41,7 +41,7 @@ ruleset_house = ExtractRuleSet(
             examples={
                 "house": EXAMPLES_BY_TYPE["house"]["price"],
             },
-            output_key="pricing",
+            output_key="price",
         ),
          ExtractorSpec(
             slug="object",
@@ -86,9 +86,9 @@ ruleset_land = ExtractRuleSet(
     extractors=[
         ExtractorSpec(
             slug="price",
-            prompt_filename="price_prompt.txt",
+            prompt_filename="land_price_prompt.txt",
             # ✅ 土地：经常有“土地估价结果一览表/估价对象/估价结果”等段落
-            input_slice_keys=["summary"],
+            input_slice_keys=["price"],
             missing_slice_policy="full",
             max_input_chars=9000,
             defaults={},
@@ -96,7 +96,7 @@ ruleset_land = ExtractRuleSet(
             examples={
                 "land": EXAMPLES_BY_TYPE["land"]["price"],
             },
-            output_key="pricing",
+            output_key="price",
         ),
     ],
 )
@@ -123,7 +123,7 @@ ruleset_asset = ExtractRuleSet(
             examples={
                 "asset": EXAMPLES_BY_TYPE["asset"]["price"],
             },
-            output_key="pricing",
+            output_key="price",
         ),
     ],
 )

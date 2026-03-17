@@ -256,9 +256,9 @@ def run_extract_batch(
                 print(f"📦 wrote extractor: {slug} -> {out_file.name} rows={len(rows)}")
 
                 # 如果是 price，额外打印摘要（保留你的调试功能）
-                if slug in ("pricing", "price"):
+                if slug in ("price"):
                     summ = _price_summary(rows)
-                    print("💰 pricing summary:")
+                    print("💰 price summary:")
                     print(json.dumps(summ, ensure_ascii=False, indent=2))
 
             # 9) sections 全量 json（可选：和你 slice 批测试一致）

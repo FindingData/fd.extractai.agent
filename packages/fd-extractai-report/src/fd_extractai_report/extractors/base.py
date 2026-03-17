@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -40,6 +40,7 @@ class Extractor:
         timeout: Optional[int] = None,
         spec: Optional[ExtractorSpec] = None,
         examples: Optional[Sequence[data.ExampleData]] = None,
+        debug: bool = False,  # ✅ 1. 在这里显式增加 debug 参数
     ) -> None:
         cfg = llm_config or CONFIG
 
@@ -55,7 +56,7 @@ class Extractor:
         self.inject_context_fields: List[str] = []
 
         self._spec = spec
-
+        self.debug = debug    # ✅ 2. 将 debug 保存到实例属性中
         if spec is not None:
             self.slug = spec.slug
             self.prompt_filename = spec.prompt_filename
@@ -73,8 +74,14 @@ class Extractor:
         text = self.get_input_text(context)
         if not text or not text.strip():
             return []
-
-        doc = self.run_langextract(text, context=context)
+        # ✅ 3. 安全地处理文本，防止变量未定义
+        final_text = text
+        if getattr(self, "debug", False):  # 使用 getattr 更安全
+            timestamp = time.time()
+            final_text = text + f"\n\n[CacheBuster:{timestamp}]"
+            print(f"🔥 [Debug] 已向文本末尾注入时间戳破除缓存: {timestamp}")
+            
+        doc = self.run_langextract(final_text, context=context)
         return self.post_process(doc, context=context)
 
     def load_prompt(self) -> str:
@@ -90,9 +97,9 @@ class Extractor:
     def run_langextract(self, text: str, *, context: ReportContext):
         prompt = self.load_prompt()
         language_model = self.build_language_model()
-
+        isolated_text = f"<actual_document>\n{text}\n</actual_document>"
         return lx.extract(
-            text,
+            isolated_text,
             prompt_description=prompt,
             examples=list(self.examples) if self.examples else [],
             language_model_type=OpenAILanguageModel,

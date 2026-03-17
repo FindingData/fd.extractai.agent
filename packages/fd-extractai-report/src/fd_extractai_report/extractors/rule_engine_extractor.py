@@ -45,7 +45,7 @@ class RuleEngineExtractorRunner:
                     f"Expect ExampleData, got: {[type(x).__name__ for x in bad]}"
                 )
 
-            ex = Extractor(spec=merged, model_id=self.model_id, base_url=self.base_url,api_key=self.api_key, examples=ex_examples)
+            ex = Extractor(spec=merged, model_id=self.model_id, base_url=self.base_url,api_key=self.api_key, examples=ex_examples,debug=self.debug)
 
             # 可观测性：输入统计
             if self.debug:

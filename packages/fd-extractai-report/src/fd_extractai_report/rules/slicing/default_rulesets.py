@@ -9,7 +9,7 @@ ruleset_house = SliceRuleSet(
     name="house_v1",
     defaults={
         "dedup": True,
-        "max_chars": 1000,
+        "max_chars": 10000,
     },
     steps=[
        SliceStep(
@@ -115,7 +115,7 @@ ruleset_land = SliceRuleSet(
         ),
         SliceStep(
             key="summary",
-            mode="by_regex_between",
+            mode="by_regex_between",            
             targets=[
                 r"第一部分",
                 r"摘要",
@@ -128,6 +128,27 @@ ruleset_land = SliceRuleSet(
                 "loose_space": True,
                 "pick": "earliest",
                 "include_start": True,   # 保留“摘要”标题（方便你后续抽字段）
+                "include_end": False,
+                "fallback_end_chars": 8000,  # 摘要一般不长
+                "merge": True,
+                "max_chars": 12000,       # 摘要上限：建议稍大于 defaults              
+            },
+            missing="empty",
+        ),
+        SliceStep(
+            key="price",
+            mode="by_regex_between",
+            within="summary",
+            targets=[
+                r"估价结果",
+            ],
+            params={
+                "ends": [
+                    r"估价师签字",                    
+                ],
+                "loose_space": True,
+                "pick": "earliest",
+                "include_start": False,   # 保留“摘要”标题（方便你后续抽字段）
                 "include_end": False,
                 "fallback_end_chars": 8000,  # 摘要一般不长
                 "merge": True,

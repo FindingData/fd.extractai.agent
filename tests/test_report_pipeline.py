@@ -201,7 +201,7 @@ def run_extract_batch(
                 extract_files[slug] = str(out_file)
                 print(f"📦 extractor {slug} rows={len(rows)}")
 
-                if slug in ("pricing"):
+                if slug in ("price"):
                     print("💰 price summary:")
                     print(
                         json.dumps(
