@@ -168,14 +168,14 @@ ruleset_asset = SliceRuleSet(
             mode="by_regex_between",
             targets=[
                 r"资产评估报告书",
-                r"资产评估",
+                r"本报告依据中国资产评估准则编制",
             ],
             params={
                 "ends": [
                     r"本册目录",
                     r"声明",
                 ],
-                 "loose_space": True,
+                "loose_space": True,
                 "pick": "earliest",
                 "include_start": True,
                 "include_end": False,

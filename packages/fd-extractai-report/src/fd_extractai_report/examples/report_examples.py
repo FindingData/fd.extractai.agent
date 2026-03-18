@@ -460,6 +460,27 @@ asset_example_price = data.ExampleData(
     ],
 )
 
+asset_example_price_v2 = data.ExampleData(
+    text="""
+八、评估结论：经实施评估程序后，于评估基准日，委估机器设备的市场价值为：人民币1877850.00元，人民币大写：壹佰捌拾柒万柒仟捌佰伍拾元整，详细情况见资产评估明细表。
+""",
+    extractions=[
+        data.Extraction(
+            "price_item",
+            "人民币1877850.00元",
+            attributes={
+                # ✅ 已经是“元”，去掉千分位和多余的小数点后缀，直接提取纯数字
+                "total_price": 1877850, 
+                "unit_price": None, # 如果没有单价，保持为 None 或 0（根据你的 Schema 定义）
+                "unit": "元",
+                "raw_text": "委估机器设备的市场价值为：人民币1877850.00元，人民币大写：壹佰捌拾柒万柒仟捌佰伍拾元整",
+                "report_type": "asset",
+                "confidence": "high",
+            },
+        )
+    ],
+)
+
 asset_example_purpose = data.ExampleData(
     text="""
 评估目的与用途
@@ -657,7 +678,7 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "targets": [land_example_targets],
     },
     "asset": {
-        "price": [asset_example_price],
+        "price": [asset_example_price,asset_example_price_v2],
         "purpose": [asset_example_purpose],
         "assumptions": [asset_example_assumption],
         "method": [asset_example_method],
