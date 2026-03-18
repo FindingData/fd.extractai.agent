@@ -117,7 +117,7 @@ ruleset_asset = ExtractRuleSet(
             # ✅ 资产：常见“评估结论/评估结果/结论”段
             input_slice_keys=["summary"],
             missing_slice_policy="full",
-            max_input_chars=9000,
+            max_input_chars=12000,
             defaults={},
             inject_context_fields=["report_type"],
             examples={
