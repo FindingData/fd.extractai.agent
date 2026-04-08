@@ -9,6 +9,8 @@ src/fd_extractai_report.egg-info/SOURCES.txt
 src/fd_extractai_report.egg-info/dependency_links.txt
 src/fd_extractai_report.egg-info/requires.txt
 src/fd_extractai_report.egg-info/top_level.txt
+src/fd_extractai_report/analysis/__init__.py
+src/fd_extractai_report/analysis/checklist_analyzer.py
 src/fd_extractai_report/benchmarks/benchmark_assumptions.json
 src/fd_extractai_report/benchmarks/benchmark_valuation.json
 src/fd_extractai_report/config/default_rulesets.yaml
@@ -22,9 +24,12 @@ src/fd_extractai_report/examples/report_examples.py
 src/fd_extractai_report/extractors/base.py
 src/fd_extractai_report/extractors/rule_engine_extractor.py
 src/fd_extractai_report/prompts/assumptions.txt
+src/fd_extractai_report/prompts/checklist_items_prompt.txt
 src/fd_extractai_report/prompts/conclusion.txt
+src/fd_extractai_report/prompts/cover_prompt.txt
 src/fd_extractai_report/prompts/house_object_prompt.txt
 src/fd_extractai_report/prompts/house_result_prompt.txt
+src/fd_extractai_report/prompts/land_price_prompt.txt
 src/fd_extractai_report/prompts/method.txt
 src/fd_extractai_report/prompts/price_prompt.txt
 src/fd_extractai_report/prompts/purpose.txt

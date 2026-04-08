@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fd_extractai_report.rules.slicing.schema import SliceRuleSet, SliceStep
 
-# 建议：这些 key 尽量与 extractor.target_slice_key / input_slice_keys 对齐
-# purpose / assumptions / method / conclusion / targets_section / valuation_tables 等
+# ????? key ??? extractor.target_slice_key / input_slice_keys ??
+# purpose / assumptions / method / conclusion / targets_section / valuation_tables ?
 
 ruleset_house = SliceRuleSet(
     name="house_v1",
@@ -15,23 +15,23 @@ ruleset_house = SliceRuleSet(
        SliceStep(
             key="cover",
             mode="by_regex_between",
-            # ✅ starts：尽量用“封面第一行/主标题”这类强特征
+            # ? starts??????????/?????????
             targets=[
-                r"房地产抵押估价报告",
-                r"房地产估价",
+                r"?????????",
+                r"?????",
             ],
             params={
                 "ends": [
-                    r"致估价委托人函",
-                    r"估价委托人函",]
+                    r"???????",
+                    r"??????",]
                 ,
                  "loose_space": True,
-                "pick": "earliest",           # 找最早出现的 start；end 也找最早
+                "pick": "earliest",           # ?????? start?end ????
                 "include_start": True,
                 "include_end": False,
-                "fallback_end_chars": 12000,  # 找不到 end 就截到 start+12000，防爆
+                "fallback_end_chars": 12000,  # ??? end ??? start+12000???
                 "merge": True,
-                "max_chars": 0,            # 覆盖 defaults 也可以不写（这里写清楚）
+                "max_chars": 0,            # ?? defaults ????????????
             },
             missing="empty",
         ),
@@ -39,22 +39,22 @@ ruleset_house = SliceRuleSet(
             key="summary",
             mode="by_regex_between",
             targets=[
-                r"致估价委托人函",
-                r"估价委托人函",
-                r"致委托人函",
-                r"致函",
+                r"???????",
+                r"??????",
+                r"?????",
+                r"??",
             ],
             params={
                 "ends": [
-                    r"目录"
+                    r"??"
                 ],
                 "loose_space": True,
                 "pick": "earliest",
-                "include_start": True,   # 保留“摘要”标题（方便你后续抽字段）
+                "include_start": True,   # ??????????????????
                 "include_end": False,
-                "fallback_end_chars": 6000,  # 摘要一般不长
+                "fallback_end_chars": 6000,  # ??????
                 "merge": True,
-                "max_chars": 0,       # 摘要上限：建议稍大于 defaults               
+                "max_chars": 0,       # ?????????? defaults               
                     },
             missing="empty",
         ),
@@ -63,8 +63,8 @@ ruleset_house = SliceRuleSet(
             mode="by_segment_tables",
             within="summary",
             targets=[
-                r"估价对象基本情况一览表",     
-                r"估价对象.*一览表",                      
+                r"???????????",     
+                r"????.*???",                      
             ],
             params={
                 "max_table_chars": 12000,
@@ -76,8 +76,8 @@ ruleset_house = SliceRuleSet(
             mode="by_segment_tables",
             within="summary",
             targets=[
-                r"估价结果一览表",     
-                r"估价结果汇总表"           
+                r"???????",     
+                r"???????"           
             ],
             params={
                 "max_table_chars": 12000,
@@ -95,13 +95,13 @@ ruleset_land = SliceRuleSet(
             key="cover",
             mode="by_regex_between",
             targets=[
-                r"土地估价报告",
-                r"土地估价",
+                r"??????",
+                r"????",
             ],
             params={
                 "ends": [
-                    r"第一部分",
-                    r"摘要",
+                    r"????",
+                    r"??",
                 ],
                  "loose_space": True,
                 "pick": "earliest",
@@ -117,21 +117,21 @@ ruleset_land = SliceRuleSet(
             key="summary",
             mode="by_regex_between",            
             targets=[
-                r"第一部分",
-                r"摘要",
+                r"????",
+                r"??",
             ],
             params={
                 "ends": [
-                    r"第二部分",
-                    r"估价对象界定",
+                    r"????",
+                    r"??????",
                 ],
                 "loose_space": True,
                 "pick": "earliest",
-                "include_start": True,   # 保留“摘要”标题（方便你后续抽字段）
+                "include_start": True,   # ??????????????????
                 "include_end": False,
-                "fallback_end_chars": 8000,  # 摘要一般不长
+                "fallback_end_chars": 8000,  # ??????
                 "merge": True,
-                "max_chars": 12000,       # 摘要上限：建议稍大于 defaults              
+                "max_chars": 12000,       # ?????????? defaults              
             },
             missing="empty",
         ),
@@ -140,19 +140,19 @@ ruleset_land = SliceRuleSet(
             mode="by_regex_between",
             within="summary",
             targets=[
-                r"估价结果",
+                r"????",
             ],
             params={
                 "ends": [
-                    r"估价师签字",                    
+                    r"?????",                    
                 ],
                 "loose_space": True,
                 "pick": "earliest",
-                "include_start": False,   # 保留“摘要”标题（方便你后续抽字段）
+                "include_start": False,   # ??????????????????
                 "include_end": False,
-                "fallback_end_chars": 8000,  # 摘要一般不长
+                "fallback_end_chars": 8000,  # ??????
                 "merge": True,
-                "max_chars": 12000,       # 摘要上限：建议稍大于 defaults              
+                "max_chars": 12000,       # ?????????? defaults              
             },
             missing="empty",
         ),
@@ -167,19 +167,19 @@ ruleset_asset = SliceRuleSet(
             key="cover",
             mode="by_regex_between",
             targets=[
-                r"资产评估报告书",
-                r"本报告依据中国资产评估准则编制",
+                r"???????",
+                r"???????????????",
             ],
             params={
                 "ends": [
-                    r"本册目录",
-                    r"声明",
+                    r"????",
+                    r"??",
                 ],
                 "loose_space": True,
                 "pick": "earliest",
                 "include_start": True,
                 "include_end": False,
-                "fallback_end_chars": 15000,  # 资产封面可能更长一点
+                "fallback_end_chars": 15000,  # ??????????
                 "merge": True,
                 "max_chars": 22000,
             },
@@ -189,21 +189,21 @@ ruleset_asset = SliceRuleSet(
             key="summary",
             mode="by_regex_between",
             targets=[
-                r"资产评估报告摘要",
-                r"摘要",
+                r"????????",
+                r"??",
             ],
             params={
                 "ends": [
-                    r"资产评估报告正文",
-                    r"报告正文",
+                    r"????????",
+                    r"????",
                 ],
                 "loose_space": True,
                 "pick": "earliest",
-                "include_start": True,   # 保留“摘要”标题（方便你后续抽字段）
+                "include_start": True,   # ??????????????????
                 "include_end": False,
-                "fallback_end_chars": 6000,  # 摘要一般不长
+                "fallback_end_chars": 6000,  # ??????
                 "merge": True,
-                "max_chars": 2500,       # 摘要上限：建议稍大于 defaults
+                "max_chars": 2500,       # ?????????? defaults
                 "skip_if_line_matches": [
                     r"^\s*\[.*\]\(#",          # [xxx](#anchor)
                     r"^\s*\[.*\]\(__",         # [xxx](#__RefHeading___Toc...)
@@ -214,8 +214,28 @@ ruleset_asset = SliceRuleSet(
     ],
 )
 
+ruleset_checklist = SliceRuleSet(
+    name="checklist_v1",
+    defaults={"dedup": True, "max_chars": 50000},
+    steps=[
+        SliceStep(
+            key="items",
+            mode="by_window_after",
+            targets=[r"\S"],
+            params={
+                "anchor_regex": True,
+                "anchor_pick": "earliest",
+                "window_chars": 50000,
+                "max_chars": 50000,
+            },
+            missing="full",
+        ),
+    ],
+)
+
 DEFAULT_RULESETS_BY_TYPE = {
     "house": ruleset_house,
     "land": ruleset_land,
     "asset": ruleset_asset,
+    "checklist": ruleset_checklist,
 }

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional
 
 
-ReportType = Literal["house", "land", "asset"]
+ReportType = Literal["house", "land", "asset", "checklist"]
 
 
 @dataclass(frozen=True)

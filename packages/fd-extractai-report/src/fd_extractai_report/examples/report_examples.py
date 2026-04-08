@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Literal
 from langextract.core import data
 
-ReportType = Literal["house", "land", "asset"]
+ReportType = Literal["house", "land", "asset", "checklist"]
 
 # =========================================================
 # 1) PURPOSE / ASSUMPTIONS / METHOD / CONCLUSION（按类型）
@@ -657,6 +657,61 @@ asset_example_targets = data.ExampleData(
 #    你后续：根据 context.metadata["report_type"] 选择对应 examples
 # =========================================================
 
+
+# -------- CHECKLIST --------
+checklist_example_items = data.ExampleData(
+    text="""
+1.泰来县2023-2024年各类型房屋建筑工程造价平均综合指标（元/㎡）及内涵或房屋重置价标准及内涵；
+2.泰来县现行有效的房地产开发相关城市基础设施配套费、建设过程中相关的行政事业性收费文件。
+3.泰来县城区2023-2024年工业用房新建商品房、二手房成交价格相关信息（含坐落、交易时间、交易价格、面积、所在楼层等）；
+4. 泰来县城区2023-2024年工业用房租赁成交价格相关信息（含坐落、交易时间、租赁价格、面积、所在楼层等）
+5.现行有效的房地产交易税、费相关文件。
+""",
+    extractions=[
+        data.Extraction(
+            "checklist_item",
+            "泰来县2023-2024年各类型房屋建筑工程造价平均综合指标（元/㎡）及内涵或房屋重置价标准及内涵",
+            attributes={
+                "content": "泰来县2023-2024年各类型房屋建筑工程造价平均综合指标（元/㎡）及内涵或房屋重置价标准及内涵",
+                "group": "房屋建筑工程造价指标",
+            },
+        ),
+        data.Extraction(
+            "checklist_item",
+            "泰来县现行有效的房地产开发相关城市基础设施配套费、建设过程中相关的行政事业性收费文件",
+            attributes={
+                "content": "泰来县现行有效的房地产开发相关城市基础设施配套费、建设过程中相关的行政事业性收费文件",
+                "group": "房地产开发收费文件",
+            },
+        ),
+        data.Extraction(
+            "checklist_item",
+            "泰来县城区2023-2024年工业用房新建商品房、二手房成交价格相关信息（含坐落、交易时间、交易价格、面积、所在楼层等）",
+            attributes={
+                "content": "泰来县城区2023-2024年工业用房新建商品房、二手房成交价格相关信息（含坐落、交易时间、交易价格、面积、所在楼层等）",
+                "group": "工业用房成交案例",
+            },
+        ),
+        data.Extraction(
+            "checklist_item",
+            "泰来县城区2023-2024年工业用房租赁成交价格相关信息（含坐落、交易时间、租赁价格、面积、所在楼层等）",
+            attributes={
+                "content": "泰来县城区2023-2024年工业用房租赁成交价格相关信息（含坐落、交易时间、租赁价格、面积、所在楼层等）",
+                "group": "工业用房租赁案例",
+            },
+        ),
+        data.Extraction(
+            "checklist_item",
+            "现行有效的房地产交易税、费相关文件",
+            attributes={
+                "content": "现行有效的房地产交易税、费相关文件",
+                "group": "房地产交易税费文件",
+            },
+        ),
+    ],
+)
+
+
 EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
     "house": {
         "cover": [house_example_cover],
@@ -684,5 +739,8 @@ EXAMPLES_BY_TYPE: Dict[ReportType, Dict[str, List[data.ExampleData]]] = {
         "method": [asset_example_method],
         "conclusion": [asset_example_conclusion],
         "targets": [asset_example_targets],
+    },
+    "checklist": {
+        "items": [checklist_example_items],
     },
 }

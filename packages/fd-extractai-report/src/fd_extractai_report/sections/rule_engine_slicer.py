@@ -131,6 +131,7 @@ class RuleEngineSlicer(SectionSlicer):
             self._dbg(context, "❌ [RuleEngine] active_ruleset is None")
             return
 
+        original_ruleset = self.ruleset
         self.ruleset = active_ruleset
         full = context.ensure_markdown()
 
@@ -214,6 +215,8 @@ class RuleEngineSlicer(SectionSlicer):
             k: len(v or []) for k, v in (getattr(context, "slices", None) or {}).items()
         }
         self._dbg(context, f"🏁 [RuleEngine] leave slices_after={after}")
+
+        self.ruleset = original_ruleset
 
     def _resolve_base_texts(
         self, ctx: ReportContext, full: str, step: SliceStep

@@ -129,8 +129,32 @@ ruleset_asset = ExtractRuleSet(
 )
 
 
+ruleset_checklist = ExtractRuleSet(
+    name="checklist_default",
+    report_type="checklist",
+    inject_context_fields=["report_type"],
+    max_input_chars=20000,
+    extractors=[
+        ExtractorSpec(
+            slug="items",
+            prompt_filename="checklist_items_prompt.txt",
+            input_slice_keys=["items"],
+            missing_slice_policy="full",
+            max_input_chars=20000,
+            defaults={},
+            inject_context_fields=["report_type"],
+            examples={
+                "checklist": EXAMPLES_BY_TYPE["checklist"]["items"],
+            },
+            output_key="items",
+        ),
+    ],
+)
+
+
 DEFAULT_RULESETS = {
     "house": ruleset_house,
     "land": ruleset_land,
     "asset": ruleset_asset,
+    "checklist": ruleset_checklist,
 }
