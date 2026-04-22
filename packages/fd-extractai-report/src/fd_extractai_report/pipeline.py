@@ -150,12 +150,12 @@ class ReportPipeline:
         api_key: Optional[str] = None,
         debug: bool = False,
     ) -> None:
-        self.converter = converter or MarkdownFileConverter()
+        cfg = llm_config or CONFIG
+
+        self.converter = converter or MarkdownFileConverter(llm_config=cfg)
         self.type_detector = type_detector or ReportTypeDetector()
         self.evaluator = evaluator or BenchmarkEvaluator()
         self.validators = list(validators) if validators is not None else []
-
-        cfg = llm_config or CONFIG
 
         self.model_id = model_id or cfg.model_id
         self.base_url = base_url or cfg.base_url

@@ -1,35 +1,133 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from io import BytesIO
-from pathlib import Path
-from typing import Optional, Union
+import importlib.util
+import logging
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass, replace
+from io import BytesIO
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from markitdown import MarkItDown
+
+from fd_extractai_report.settings import CONFIG, LLMConfig
 
 
 ConverterSource = Union[bytes, str, Path]
 
+logger = logging.getLogger(__name__)
+
+
+class OCRDependencyError(RuntimeError):
+    pass
+
+
+class OCRConfigurationError(RuntimeError):
+    pass
+
 
 @dataclass(frozen=True)
 class MarkdownConvertOptions:
-    soffice_path: str = "soffice"   # LibreOffice 命令
-    keep_converted_docx: bool = False  # 调试用：是否保留生成的 docx
+    soffice_path: str = "soffice"
+    keep_converted_docx: bool = False
     strip: bool = True
-    max_chars: int = 0              # 0 表示不截断
-    timeout_sec: int = 120          # 防止 soffice 卡死
+    max_chars: int = 0
+    timeout_sec: int = 120
+    enable_ocr: Optional[bool] = None
+    ocr_model_id: Optional[str] = None
+    ocr_base_url: Optional[str] = None
+    ocr_api_key: Optional[str] = None
+    ocr_prompt: Optional[str] = None
 
 
 class MarkdownFileConverter:
-    def __init__(self, options: Optional[MarkdownConvertOptions] = None):
-        self.opt = options or MarkdownConvertOptions()
-        self.md = MarkItDown()
+    def __init__(
+        self,
+        options: Optional[MarkdownConvertOptions] = None,
+        *,
+        llm_config: Optional[LLMConfig] = None,
+    ) -> None:
+        self.llm_config = llm_config or CONFIG
+        self.opt = self._resolve_options(options)
+        self.md = self._build_markitdown()
+
+    def _resolve_options(
+        self,
+        options: Optional[MarkdownConvertOptions],
+    ) -> MarkdownConvertOptions:
+        default_options = MarkdownConvertOptions(
+            enable_ocr=self.llm_config.enable_ocr,
+            ocr_model_id=self.llm_config.ocr_model_id or self.llm_config.model_id,
+            ocr_base_url=self.llm_config.ocr_base_url or self.llm_config.base_url,
+            ocr_api_key=self.llm_config.ocr_api_key or self.llm_config.api_key,
+            ocr_prompt=self.llm_config.ocr_prompt or None,
+        )
+        if options is None:
+            return default_options
+
+        resolved = options
+        if resolved.enable_ocr is None:
+            resolved = replace(resolved, enable_ocr=default_options.enable_ocr)
+        if not resolved.ocr_model_id:
+            resolved = replace(resolved, ocr_model_id=default_options.ocr_model_id)
+        if not resolved.ocr_base_url:
+            resolved = replace(resolved, ocr_base_url=default_options.ocr_base_url)
+        if not resolved.ocr_api_key:
+            resolved = replace(resolved, ocr_api_key=default_options.ocr_api_key)
+        if not resolved.ocr_prompt:
+            resolved = replace(resolved, ocr_prompt=default_options.ocr_prompt)
+        return resolved
+
+    def _build_markitdown(self) -> MarkItDown:
+        if not self.opt.enable_ocr:
+            return MarkItDown()
+
+        self._ensure_ocr_dependencies()
+        llm_client = self._build_ocr_client()
+
+        kwargs: dict[str, Any] = {
+            "enable_plugins": True,
+            "llm_client": llm_client,
+            "llm_model": self.opt.ocr_model_id,
+        }
+        if self.opt.ocr_prompt:
+            kwargs["llm_prompt"] = self.opt.ocr_prompt
+
+        logger.info("Initialize MarkItDown with OCR plugin enabled.")
+        return MarkItDown(**kwargs)
+
+    def _ensure_ocr_dependencies(self) -> None:
+        if importlib.util.find_spec("markitdown_ocr") is None:
+            raise OCRDependencyError(
+                "OCR 已启用，但未安装 `markitdown-ocr`。请先安装该依赖。"
+            )
+        if importlib.util.find_spec("openai") is None:
+            raise OCRDependencyError(
+                "OCR 已启用，但未安装 `openai`。请先安装该依赖。"
+            )
+
+    def _build_ocr_client(self) -> Any:
+        if not self.opt.ocr_model_id:
+            raise OCRConfigurationError("OCR 已启用，但缺少 OCR 模型配置。")
+        if not self.opt.ocr_base_url:
+            raise OCRConfigurationError("OCR 已启用，但缺少 OCR base URL 配置。")
+
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise OCRDependencyError(
+                "OCR 已启用，但当前环境无法导入 `openai`。"
+            ) from exc
+
+        return OpenAI(
+            base_url=self.opt.ocr_base_url,
+            api_key=self.opt.ocr_api_key or "EMPTY",
+            timeout=self.llm_config.timeout,
+        )
 
     def convert(self, source: ConverterSource, *, filename: str | None = None) -> str:
-        """自动识别输入类型：Path/str/bytes -> Markdown"""
         if isinstance(source, (str, Path)):
             return self._convert_path(Path(source))
 
@@ -38,17 +136,12 @@ class MarkdownFileConverter:
 
         raise TypeError(f"Unsupported source type: {type(source)}")
 
-    # ==========================
-    # path 转换
-    # ==========================
     def _convert_path(self, path: Path) -> str:
         if not path.exists():
             raise FileNotFoundError(path)
 
         suffix = path.suffix.lower()
-
         if suffix == ".doc":
-            # ✅ 用临时目录转换，避免在原目录生成同名 docx 污染/并发冲突
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmpdir_p = Path(tmpdir)
                 tmp_doc = tmpdir_p / path.name
@@ -58,25 +151,19 @@ class MarkdownFileConverter:
                 text = self._markitdown_file(docx)
 
                 if self.opt.keep_converted_docx:
-                    # 需要保留就复制回原目录旁边（不覆盖）
                     keep_path = path.with_suffix(".__converted__.docx")
                     shutil.copy2(docx, keep_path)
 
                 return self._post(text)
 
-        # 其他格式直接交给 MarkItDown
         text = self._markitdown_file(path)
         return self._post(text)
 
-    # ==========================
-    # bytes 转换
-    # ==========================
     def _convert_bytes(self, file_bytes: bytes, *, filename: str | None = None) -> str:
         if not file_bytes:
             return ""
 
         suffix = Path(filename).suffix.lower() if filename else ""
-
         if suffix == ".doc":
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmpdir_p = Path(tmpdir)
@@ -92,17 +179,16 @@ class MarkdownFileConverter:
 
                 return self._post(text)
 
-        # 非 doc：直接 stream
         bio = BytesIO(file_bytes)
-        result = self.md.convert_stream(bio)
-        text = getattr(result, "markdown", None) or getattr(result, "text_content", None) or ""
-        return self._post(text)
+        result = self.md.convert_stream(bio, file_extension=suffix or None)
+        return self._post(self._extract_text(result))
 
-    # ==========================
-    # MarkItDown helpers
-    # ==========================
     def _markitdown_file(self, path: Path) -> str:
         result = self.md.convert(str(path))
+        return self._extract_text(result)
+
+    @staticmethod
+    def _extract_text(result: Any) -> str:
         return getattr(result, "markdown", None) or getattr(result, "text_content", None) or ""
 
     def _post(self, text: str) -> str:
@@ -112,9 +198,6 @@ class MarkdownFileConverter:
             text = text[: self.opt.max_chars]
         return text
 
-    # ==========================
-    # doc -> docx
-    # ==========================
     def _convert_doc_to_docx(self, path_obj: Path, *, outdir: Path) -> Path:
         cmd = [
             self.opt.soffice_path,

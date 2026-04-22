@@ -1,7 +1,7 @@
 # AGENTS.md
 > 记录项目长期稳定的目标、架构原则与执行规则。
 > 不记录阶段进度、已完成事项或临时断点。
-> 执行时必须结合 `PLAN.md`、`ISSUES.md`、`STATE.md` 一起使用。
+> 执行时必须结合 `runtime/PLAN.md`、`runtime/ISSUES.md`、`runtime/STATE.md` 一起使用。
 
 ---
 
@@ -9,9 +9,9 @@
 
 在执行任何开发任务之前，必须按顺序完成以下检查：
 
-1. 读取 `PLAN.md` → 确认当前任务属于哪个优先级条目
-2. 读取 `STATE.md` → 确认当前进度断点，避免重复劳动
-3. 读取 `ISSUES.md` → 确认任务是否存在已知阻塞或依赖
+1. 读取 `runtime/PLAN.md` → 确认当前任务属于哪个优先级条目
+2. 读取 `runtime/STATE.md` → 确认当前进度断点，避免重复劳动
+3. 读取 `runtime/ISSUES.md` → 确认任务是否存在已知阻塞或依赖
 4. 读取目标模块的现有代码 → **严禁在未读代码的情况下直接修改**
 5. 确认修改范围仅限 `packages/fd-extractai-report/src/fd_extractai_report/`
 
@@ -119,8 +119,8 @@ Step 8  tests/
 - [ ] 目标功能可通过 `run_until` 分步调试验证
 - [ ] 相关测试脚本（`tests/test_report_*.py`）无新增失败
 - [ ] 没有引入新的 `print` / 硬编码配置 / 裸 `dict` 接口
-- [ ] `STATE.md` 已更新当前断点
-- [ ] `ISSUES.md` 中若有关联问题，已标注为已解决或已更新状态
+- [ ] `runtime/STATE.md` 已更新当前断点
+- [ ] `runtime/ISSUES.md` 中若有关联问题，已标注为已解决或已更新状态
 
 ---
 

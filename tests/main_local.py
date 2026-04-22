@@ -6,16 +6,19 @@ import asyncio  # 导入 asyncio 用于运行异步函数
 from datetime import datetime
 import os,pathlib
 from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "packages/fd-extractai-report/src"))
 from app.utils.text_utils import convert_docx_to_md
 from app.utils.markdown_utils import sectionize,bucket_by_targets,extract_title_plus_pipe_table,extract_basic_info_table
 from typing import Iterable, Sequence, Iterable, Any, Dict,List, Union,Tuple
 import langextract as lx
 from langextract.core import data
 from dotenv import load_dotenv
-from config import CONFIG
+from fd_extractai_report.settings import LLMConfig
 import dataclasses
  
 EXPORT_DIR = Path(os.getcwd()) / "exports"
+LLM_CONFIG = LLMConfig.from_env()
 example_1 = data.ExampleData(
     text= """
     估价报告编号：湘经典（2025）衡房011809A
@@ -169,8 +172,8 @@ if __name__ == "__main__":
         text,
         prompt_description=prompt,
         examples=EXAMPLES_SIM,                
-        model_id=CONFIG.LOCAL_MODEL_NAME,
-        model_url=CONFIG.LOCAL_MODEL_URL,
+        model_id=LLM_CONFIG.model_id,
+        model_url=LLM_CONFIG.base_url,
         max_char_buffer=8192,
         
         language_model_params={

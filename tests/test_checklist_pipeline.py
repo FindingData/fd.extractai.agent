@@ -20,11 +20,6 @@ from fd_extractai_report.analysis import ChecklistAnalyzer
 from fd_extractai_report.pipeline import ReportPipeline
 from fd_extractai_report.settings import LLMConfig
 
-try:
-    from config import CONFIG as LEGACY_CONFIG
-except Exception:
-    LEGACY_CONFIG = None
-
 
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,14 +56,6 @@ def _serialize_sections(context: Any) -> List[Dict[str, Any]]:
 
 
 def _build_llm_config() -> LLMConfig:
-    if LEGACY_CONFIG is not None and getattr(LEGACY_CONFIG, "QWEN_MODEL_NAME", None) and getattr(
-        LEGACY_CONFIG, "QWEN_MODEL_URL", None
-    ):
-        return LLMConfig(
-            model_id=LEGACY_CONFIG.QWEN_MODEL_NAME,
-            base_url=LEGACY_CONFIG.QWEN_MODEL_URL,
-            api_key=getattr(LEGACY_CONFIG, "QWEN_KEY", "") or "",
-        )
     return LLMConfig.from_env()
 
 

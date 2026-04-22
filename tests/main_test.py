@@ -6,16 +6,19 @@ import asyncio  # 导入 asyncio 用于运行异步函数
 from datetime import datetime
 import os,pathlib
 from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "packages/fd-extractai-report/src"))
 from app.utils.text_utils import convert_docx_to_md
 from app.utils.markdown_utils import sectionize,bucket_by_targets,extract_title_plus_pipe_table,extract_basic_info_table
 from typing import Iterable, Sequence, Iterable, Any, Dict,List, Union,Tuple
 from langextract import extract
 from langextract.core import data
 from dotenv import load_dotenv
-from config import CONFIG
+from fd_extractai_report.settings import LLMConfig
 
 
 EXPORT_DIR = Path(os.getcwd()) / "exports"
+LLM_CONFIG = LLMConfig.from_env()
 
 example_1 = data.ExampleData(
     text= """
@@ -194,8 +197,8 @@ if __name__ == "__main__":
         api_key=_ensure_api_key(),
         format_type=data.FormatType.JSON,
         max_char_buffer=400,
-        model_id=CONFIG.LOCAL_MODEL_NAME,
-        model_url=CONFIG.LOCAL_MODEL_URL,
+        model_id=LLM_CONFIG.model_id,
+        model_url=LLM_CONFIG.base_url,
     )
 
      extractions: Iterable[data.Extraction] = annotated_doc.extractions or []

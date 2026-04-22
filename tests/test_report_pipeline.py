@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from config import CONFIG
 from fd_extractai_report.pipeline import ReportPipeline
+from fd_extractai_report.settings import LLMConfig
 
 
 # -----------------------------
@@ -286,9 +286,7 @@ if __name__ == "__main__":
 
     pipe = ReportPipeline(
         debug=True,
-        model_id=CONFIG.QWEN_MODEL_NAME,
-        base_url=CONFIG.QWEN_MODEL_URL,
-        api_key=CONFIG.QWEN_KEY,
+        llm_config=LLMConfig.from_env(),
     )
 
     print("\n===== BYTES MODE =====")

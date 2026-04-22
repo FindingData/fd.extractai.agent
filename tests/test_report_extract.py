@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from config import CONFIG
 from fd_extractai_report import ReportPipeline
 
 from fd_extractai_report.pipeline import ReportPipeline
+from fd_extractai_report.settings import LLMConfig
 
 # ✅ slicer + slicing rulesets（按你项目实际路径）
 from fd_extractai_report.sections.rule_engine_slicer import RuleEngineSlicer
@@ -144,11 +144,12 @@ def run_extract_batch(
     t0 = time.time()
 
     # ✅ extractor runner（按 default_rulesets 自动选 ruleset）
+    llm_config = LLMConfig.from_env()
     runner = RuleEngineExtractorRunner(
         debug=debug_extract,
-        model_id=CONFIG.QWEN_MODEL_NAME,
-        base_url=CONFIG.QWEN_MODEL_URL,
-        api_key=CONFIG.QWEN_KEY,
+        model_id=llm_config.model_id,
+        base_url=llm_config.base_url,
+        api_key=llm_config.api_key,
     )
 
     for i, f in enumerate(files, 1):
@@ -321,7 +322,7 @@ if __name__ == "__main__":
     out_dir = input_dir / "_outputs"
 
     # ✅ pipeline：这里只要 load + detect 就够，slicers/extractors 传空
-    pipe = ReportPipeline()
+    pipe = ReportPipeline(llm_config=LLMConfig.from_env())
 
     print("\n===== BYTES MODE =====")
 
