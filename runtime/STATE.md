@@ -72,3 +72,10 @@
 1. 结合 `inputs/report_bak/2.docx` 的新增 OCR 片段，调优 `LLM_OCR_PROMPT` 或切换更强视觉模型，降低乱码与重复输出。
 2. 如需提升 `jd/t_1.docx` 的识别稳定性，可针对土地证类图片单独优化 OCR prompt。
 3. 抽查 `inputs/zlqd/_outputs/checklist_pipeline` 中的 `analysis.json` / `analysis.md`，评估分类规则是否需要继续细化。
+## Session Update
+
+- `inputs/jd/t_2.docx` 的 DOCX OCR 顺序问题已定位并修复。
+- 修复位置：`packages/fd-extractai-report/src/fd_extractai_report/converters/markdown_converter.py`
+- 修复方式：在启用 OCR 时，对 `markitdown-ocr` 的 DOCX 图片抽取逻辑做补丁，改为按文档 XML 中 `a:blip` 的出现顺序提取并 OCR 图片，而不是按关系表遍历顺序。
+- 验证结果：`ReportPipeline.load()` 输出 3 个 `Image OCR` 块，顺序已从反序改为文档顺序。
+- `packages/fd-extractai-report/pyproject.toml` 版本已从 `0.1.0` 提升到 `0.1.1`，并重新构建产物到 `packages/fd-extractai-report/dist`。

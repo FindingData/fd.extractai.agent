@@ -8,9 +8,10 @@
 ## Current Items
 
 ### Ready
-- [quality] OCR 真实联调已跑通，但 `qwen2.5vl:7b` 在 `inputs/report_bak/2.docx` 的部分现场照片/证照图片上仍存在乱码、噪声和重复编号现象，后续可继续通过 `LLM_OCR_PROMPT` 或更强视觉模型优化质量。
+- 无
 
 ### Resolved
+- [bug] #3 已修复：DOCX OCR 输出顺序改为按图片在文档中的顺序输出，`t_2.docx` 验证通过。
 - [feature] [Phase 2] 已完成 `markitdown-ocr` 接入：转换层支持通过 `LLMConfig.from_env()` 可选启用 OCR，复用 OpenAI-compatible 本地模型配置，并补充 `tests/scripts/debug_markdown_ocr.py` 调试脚本。
 - [verify] 已完成真实 OCR smoke test：远端模型网关 `http://192.168.10.250:11434/v1` 可达，且存在 `qwen2.5vl:7b`；在 `inputs/report_bak/2.docx` 上，OCR 开启后输出由 `51736` 增至 `53527` 字符，并出现 `*[Image OCR] ... [End OCR]*` 新增片段。
 

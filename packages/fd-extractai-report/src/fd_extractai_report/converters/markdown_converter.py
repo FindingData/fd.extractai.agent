@@ -16,6 +16,7 @@ from fd_extractai_report.settings import CONFIG, LLMConfig
 
 
 ConverterSource = Union[bytes, str, Path]
+_DOCX_OCR_ORDER_PATCHED = False
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,7 @@ class MarkdownFileConverter:
             return MarkItDown()
 
         self._ensure_ocr_dependencies()
+        self._patch_docx_ocr_image_order()
         llm_client = self._build_ocr_client()
 
         kwargs: dict[str, Any] = {
@@ -97,6 +99,66 @@ class MarkdownFileConverter:
 
         logger.info("Initialize MarkItDown with OCR plugin enabled.")
         return MarkItDown(**kwargs)
+
+    def _patch_docx_ocr_image_order(self) -> None:
+        global _DOCX_OCR_ORDER_PATCHED
+
+        if _DOCX_OCR_ORDER_PATCHED:
+            return
+
+        try:
+            from docx import Document
+            from docx.oxml.ns import qn
+            from markitdown_ocr._docx_converter_with_ocr import DocxConverterWithOCR
+        except ImportError:
+            return
+
+        def _extract_and_ocr_images_in_document_order(self, file_stream: Any, ocr_service: Any) -> dict[str, str]:
+            ocr_map: dict[str, str] = {}
+
+            try:
+                file_stream.seek(0)
+                doc = Document(file_stream)
+                ordered_rel_ids: list[str] = []
+
+                for blip in doc.part.element.xpath(".//a:blip"):
+                    rel_id = blip.get(qn("r:embed"))
+                    if rel_id and rel_id not in ordered_rel_ids:
+                        ordered_rel_ids.append(rel_id)
+
+                for rel_id in ordered_rel_ids:
+                    rel = doc.part.rels.get(rel_id)
+                    target_ref = getattr(rel, "target_ref", "") if rel is not None else ""
+                    if rel is None or "image" not in target_ref.lower():
+                        continue
+
+                    try:
+                        image_stream = BytesIO(rel.target_part.blob)
+                        ocr_result = ocr_service.extract_text(image_stream)
+                    except Exception as exc:
+                        logger.warning(
+                            "DOCX OCR failed for image %s: %s",
+                            target_ref,
+                            exc,
+                        )
+                        continue
+
+                    text = (ocr_result.text or "").strip()
+                    if text:
+                        ocr_map[rel_id] = text
+                    elif getattr(ocr_result, "error", None):
+                        logger.warning(
+                            "DOCX OCR returned empty text for image %s: %s",
+                            target_ref,
+                            ocr_result.error,
+                        )
+            except Exception as exc:
+                logger.warning("Failed to extract DOCX images in document order: %s", exc)
+
+            return ocr_map
+
+        DocxConverterWithOCR._extract_and_ocr_images = _extract_and_ocr_images_in_document_order
+        _DOCX_OCR_ORDER_PATCHED = True
 
     def _ensure_ocr_dependencies(self) -> None:
         if importlib.util.find_spec("markitdown_ocr") is None:
